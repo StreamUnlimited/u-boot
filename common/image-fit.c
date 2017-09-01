@@ -1628,16 +1628,37 @@ void fit_conf_print(const void *fit, int noffset, const char *p)
 	}
 }
 
+static void print_verification_failure_warning(void)
+{
+	printf("****************************************\n");
+	printf("** WARN WARN WARN WARN WARN WARN WARN **\n");
+	printf("**                                    **\n");
+	printf("** fit image verification failed      **\n");
+	printf("** booting will continue because      **\n");
+	printf("** verify was not enabled             **\n");
+	printf("**                                    **\n");
+	printf("** make sure this is fixed before     **\n");
+	printf("** locking the module, failure to do  **\n");
+	printf("** so will result in a bricked module **\n");
+	printf("**                                    **\n");
+	printf("** WARN WARN WARN WARN WARN WARN WARN **\n");
+	printf("****************************************\n");
+}
+
+
 static int fit_image_select(const void *fit, int rd_noffset, int verify)
 {
 	fit_image_print(fit, rd_noffset, "   ");
 
-	if (verify) {
-		puts("   Verifying Hash Integrity ... ");
-		if (!fit_image_verify(fit, rd_noffset)) {
+	puts("   Verifying Hash Integrity ... ");
+	if (!fit_image_verify(fit, rd_noffset)) {
+		if (verify) {
 			puts("Bad Data Hash\n");
 			return -EACCES;
+		} else {
+			print_verification_failure_warning();
 		}
+	} else {
 		puts("OK\n");
 	}
 
@@ -1765,15 +1786,21 @@ int fit_image_load(bootm_headers_t *images, ulong addr,
 		if (image_type == IH_TYPE_KERNEL) {
 			/* Remember (and possibly verify) this config */
 			images->fit_uname_cfg = fit_base_uname_config;
-			if (IMAGE_ENABLE_VERIFY && images->verify) {
+			if (IMAGE_ENABLE_VERIFY) {
 				puts("   Verifying Hash Integrity ... ");
 				if (fit_config_verify(fit, cfg_noffset)) {
 					puts("Bad Data Hash\n");
-					bootstage_error(bootstage_id +
-						BOOTSTAGE_SUB_HASH);
-					return -EACCES;
+
+					if (images->verify) {
+						bootstage_error(bootstage_id +
+							BOOTSTAGE_SUB_HASH);
+						return -EACCES;
+					} else {
+						print_verification_failure_warning();
+					}
+				} else {
+					puts("OK\n");
 				}
-				puts("OK\n");
 			}
 			bootstage_mark(BOOTSTAGE_ID_FIT_CONFIG);
 		}
