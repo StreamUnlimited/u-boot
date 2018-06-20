@@ -117,7 +117,7 @@ int imagetool_get_filesize(struct image_tool_params *params, const char *fname)
 }
 
 time_t imagetool_get_source_date(
-	 struct image_tool_params *params,
+	 const char *cmdname,
 	 time_t fallback)
 {
 	char *source_date_epoch = getenv("SOURCE_DATE_EPOCH");
@@ -129,7 +129,7 @@ time_t imagetool_get_source_date(
 
 	if (gmtime(&time) == NULL) {
 		fprintf(stderr, "%s: SOURCE_DATE_EPOCH is not valid\n",
-			params->cmdname);
+			cmdname);
 		time = 0;
 	}
 

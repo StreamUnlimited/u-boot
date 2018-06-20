@@ -98,7 +98,7 @@ static void image_set_header(void *ptr, struct stat *sbuf, int ifd,
 				sizeof(image_header_t)),
 			sbuf->st_size - sizeof(image_header_t));
 
-	time = imagetool_get_source_date(params, sbuf->st_mtime);
+	time = imagetool_get_source_date(params->cmdname, sbuf->st_mtime);
 	if (params->type == IH_TYPE_FIRMWARE_IVT)
 		/* Add size of CSF minus IVT */
 		imagesize = sbuf->st_size - sizeof(image_header_t) + 0x1FE0;
