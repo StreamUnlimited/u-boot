@@ -124,7 +124,17 @@ int env_import(const char *buf, int check)
 		}
 	}
 
-	if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE, '\0', 0, 0,
+	/*
+	 * We set the H_NOCLEAR flag here, this allows us to merge an already
+	 * existing env hashtable with the imported values. This is the behaviour
+	 * we ultimately want because in our use case we sometimes only have
+	 * version information in the NAND and no other U-Boot variables
+	 * (like bootcmd). So to be able to boot, we first load the default env
+	 * inside env_load() and then the respecive storage drivers will call
+	 * env_import() where the storage environment will be merged with the
+	 * default one.
+	 */
+	if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE, '\0', H_NOCLEAR, 0,
 			0, NULL)) {
 		gd->flags |= GD_FLG_ENV_READY;
 		return 0;

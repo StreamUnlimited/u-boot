@@ -11,9 +11,13 @@
 #include <linux/bitops.h>
 #include <linux/bug.h>
 
+#if CONFIG_IS_ENABLED(SUE_SECURE_BOOT)
+#include <sue_secureboot.h>
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
-#if defined(CONFIG_NEEDS_MANUAL_RELOC)
+#if CONFIG_IS_ENABLED(CONFIG_NEEDS_MANUAL_RELOC)
 void env_fix_drivers(void)
 {
 	struct env_driver *drv;
@@ -189,6 +193,15 @@ int env_load(void)
 	int best_prio = -1;
 	int prio;
 
+#if CONFIG_IS_ENABLED(SUE_SECURE_BOOT)
+	env_set_default("Loading default environment for merging\n", H_INTERACTIVE);
+
+	if (is_sue_secureboot()) {
+		printf("Board is locked, not merging with environment from NAND\n");
+		return 0;
+	}
+#endif
+
 	for (prio = 0; (drv = env_driver_lookup(ENVOP_LOAD, prio)); prio++) {
 		int ret;
 
@@ -198,7 +211,7 @@ int env_load(void)
 		if (!env_has_inited(drv->location))
 			continue;
 
-		printf("Loading Environment from %s... ", drv->name);
+		printf("Merging Environment from %s... ", drv->name);
 		/*
 		 * In error case, the error message must be printed during
 		 * drv->load() in some underlying API, and it must be exactly
@@ -238,6 +251,13 @@ int env_load(void)
 int env_save(void)
 {
 	struct env_driver *drv;
+
+#if CONFIG_IS_ENABLED(SUE_SECURE_BOOT)
+	if (is_sue_secureboot()) {
+		printf("Board is locked, environment saving is disabled\n");
+		return -EPERM;
+	}
+#endif
 
 	drv = env_driver_lookup(ENVOP_SAVE, gd->env_load_prio);
 	if (drv) {
@@ -296,6 +316,15 @@ int env_init(void)
 	struct env_driver *drv;
 	int ret = -ENOENT;
 	int prio;
+
+#if CONFIG_IS_ENABLED(SUE_SECURE_BOOT)
+	if (is_sue_secureboot()) {
+		gd->env_addr = (ulong)&default_environment[0];
+		gd->env_valid = ENV_VALID;
+
+		return 0;
+	}
+#endif
 
 	for (prio = 0; (drv = env_driver_lookup(ENVOP_INIT, prio)); prio++) {
 		if (!drv->init || !(ret = drv->init()))
