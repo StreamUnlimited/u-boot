@@ -1184,6 +1184,7 @@ retry_it:
 		srb->pdata = (unsigned char *)buf_addr;
 		if (usb_read_10(srb, ss, start, smallblks)) {
 			debug("Read ERROR\n");
+			ss->flags &= ~USB_READY;
 			usb_request_sense(srb, ss);
 			if (retry--)
 				goto retry_it;
@@ -1194,7 +1195,6 @@ retry_it:
 		blks -= smallblks;
 		buf_addr += srb->datalen;
 	} while (blks != 0);
-	ss->flags &= ~USB_READY;
 
 	debug("usb_read: end startblk " LBAF
 	      ", blccnt %x buffer %" PRIxPTR "\n",
@@ -1270,6 +1270,7 @@ retry_it:
 		srb->pdata = (unsigned char *)buf_addr;
 		if (usb_write_10(srb, ss, start, smallblks)) {
 			debug("Write ERROR\n");
+			ss->flags &= ~USB_READY;
 			usb_request_sense(srb, ss);
 			if (retry--)
 				goto retry_it;
@@ -1280,7 +1281,6 @@ retry_it:
 		blks -= smallblks;
 		buf_addr += srb->datalen;
 	} while (blks != 0);
-	ss->flags &= ~USB_READY;
 
 	debug("usb_write: end startblk " LBAF ", blccnt %x buffer %"
 	      PRIxPTR "\n", start, smallblks, buf_addr);
@@ -1475,10 +1475,10 @@ int usb_stor_get_info(struct usb_device *dev, struct us_data *ss,
 	memset(pccb->pdata, 0, 8);
 	if (usb_read_capacity(pccb, ss) != 0) {
 		printf("READ_CAP ERROR\n");
+		ss->flags &= ~USB_READY;
 		cap[0] = 2880;
 		cap[1] = 0x200;
 	}
-	ss->flags &= ~USB_READY;
 	debug("Read Capacity returns: 0x%08x, 0x%08x\n", cap[0], cap[1]);
 #if 0
 	if (cap[0] > (0x200000 * 10)) /* greater than 10 GByte */
