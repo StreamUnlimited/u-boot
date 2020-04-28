@@ -77,30 +77,48 @@ static const struct module_map_entry module_map[] = {
 	{ SUE_MODULE_S1832, 3, 0x00 },
 };
 
+/*
+ * These names are more human friendly and can be used for printing.
+ */
 static const char *carrier_names[] = {
 	"unknown",
 	"StreamKit Prime",
 	"factory tester",
+	"StreamKit 1832",
 };
 
+/*
+ * These names can be used where no spaces or other special charactar are allowed,
+ * e.g. for fit configurations.
+ */
 static const char *canonical_carrier_names[] = {
 	"unknown",
 	"streamkitprime",
 	"factory",
+	"streamkit1832",
 };
 
+/*
+ * These names are more human friendly and can be used for printing.
+ */
 static  const char *daughter_names[] = {
 	"unknown",
 	"empty",
 	"highend",
 	"voice",
+	"dabfm",
 };
 
+/*
+ * These names can be used where no spaces or other special charactar are allowed,
+ * e.g. for fit configurations.
+ */
 static const char *canonical_daughter_names[] = {
 	"unknown",
 	"empty",
 	"highend",
 	"voice",
+	"dabfm",
 };
 
 extern struct sue_carrier_ops generic_board_ops;
@@ -115,6 +133,7 @@ static const struct sue_carrier_ops *sue_carrier_ops[] = {
 	&generic_board_ops,		/* unknown */
 	&generic_board_ops,		/* StreamKit Prime */
 	&generic_board_ops,		/* Factory tester */
+	&generic_board_ops,		/* StreamKit 1832 */
 };
 
 struct carrier_map_entry {
@@ -133,6 +152,12 @@ struct carrier_map_entry {
  * 0x01, so we always assume it's a normal demo client.
  */
 static const struct carrier_map_entry carrier_map[] = {
+	/*
+	 * Both StreamKit Prime and StreamKit 1832 have the same MSB,
+	 * carrierboard matching has to be done with the knowledge of the
+	 * daughterboard unfortunately.
+	 */
+	{ SUE_CARRIER_STREAMKIT_1832,		0, 0x04, 0x00, SUE_CARRIER_FLAGS_HAS_DAUGHTER },
 	{ SUE_CARRIER_STREAMKIT_PRIME,		0, 0x04, 0x00, SUE_CARRIER_FLAGS_HAS_DAUGHTER },
 
 	{ SUE_CARRIER_FACTORY_TESTER,		0, 0x19, 0x01, 0 },
@@ -164,6 +189,11 @@ static const struct daughter_map_entry daughter_map_streamkit_prime[] = {
 	{ SUE_DAUGHTER_EMPTY,	0, 0x1a },
 };
 
+static const struct daughter_map_entry daughter_map_streamkit_1832[] = {
+	{ SUE_DAUGHTER_DABFM,	0, 0x01 },
+	{ SUE_DAUGHTER_VOICE,	0, 0x03 },
+};
+
 struct supported_daughters_entry {
 	const struct daughter_map_entry *daughters;
 	const unsigned int ndaughters;
@@ -173,6 +203,10 @@ static const struct supported_daughters_entry supported_daughters[SUE_CARRIER_MA
 	[SUE_CARRIER_STREAMKIT_PRIME] = {
 		.daughters = daughter_map_streamkit_prime,
 		.ndaughters = ARRAY_SIZE(daughter_map_streamkit_prime),
+	},
+	[SUE_CARRIER_STREAMKIT_1832] = {
+		.daughters = daughter_map_streamkit_1832,
+		.ndaughters = ARRAY_SIZE(daughter_map_streamkit_1832),
 	},
 };
 
