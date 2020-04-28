@@ -148,10 +148,20 @@ struct daughter_map_entry {
 };
 
 static const struct daughter_map_entry daughter_map_streamkit_prime[] = {
-	{ SUE_DAUGHTER_EMPTY,	0, 0x01 },
+	/*
+	 * StreamKit Prime without daughterboard with jumper inserted will have
+	 * LSB 0x1 but that is NOT supported.
+	 */
+	/*	{ SUE_DAUGHTER_EMPTY,	0, 0x01 }, */
 	{ SUE_DAUGHTER_HE,	0, 0x11 },
 	{ SUE_DAUGHTER_VOICE,	0, 0x13 },
 	{ SUE_DAUGHTER_VOICE,	0, 0x14 },
+	/*
+	 * StreamKit Prime without daughterboard and without jumper will have a
+	 * floating line that should match either of the following.
+	 */
+	{ SUE_DAUGHTER_EMPTY,	0, 0x19 },
+	{ SUE_DAUGHTER_EMPTY,	0, 0x1a },
 };
 
 struct supported_daughters_entry {
