@@ -147,11 +147,23 @@ struct daughter_map_entry {
 	u8 code;
 };
 
-static const struct daughter_map_entry daughter_map[] = {
+static const struct daughter_map_entry daughter_map_streamkit_prime[] = {
 	{ SUE_DAUGHTER_EMPTY,	0, 0x01 },
 	{ SUE_DAUGHTER_HE,	0, 0x11 },
 	{ SUE_DAUGHTER_VOICE,	0, 0x13 },
 	{ SUE_DAUGHTER_VOICE,	0, 0x14 },
+};
+
+struct supported_daughters_entry {
+	const struct daughter_map_entry *daughters;
+	const unsigned int ndaughters;
+};
+
+static const struct supported_daughters_entry supported_daughters[SUE_CARRIER_MAX] = {
+	[SUE_CARRIER_STREAMKIT_PRIME] = {
+		.daughters = daughter_map_streamkit_prime,
+		.ndaughters = ARRAY_SIZE(daughter_map_streamkit_prime),
+	},
 };
 
 static int get_adc_code(u16 adc_value)
@@ -199,20 +211,31 @@ static int fill_device_info(struct sue_device_info *device, u16 module_code,
 	for (i = 0; i < ARRAY_SIZE(carrier_map); i++) {
 		if (carrier_map[i].flags & SUE_CARRIER_FLAGS_HAS_DAUGHTER) {
 			if (carrier_map[i].msb_code == carrier_msb_code) {
+				const struct supported_daughters_entry *supp_daughters = &supported_daughters[carrier_map[i].carrier];
+				const struct daughter_map_entry *daughter_map = supp_daughters->daughters;
 				int j;
 
 				device->carrier = carrier_map[i].carrier;
 				device->carrier_version = carrier_map[i].carrier_version;
 				device->carrier_flags = carrier_map[i].flags;
 
-				for (j = 0; j < ARRAY_SIZE(daughter_map); j++) {
+				for (j = 0; j < supp_daughters->ndaughters; j++) {
 					if (daughter_map[j].code == carrier_lsb_code) {
 						device->daughter = daughter_map[j].daughter;
 						device->daughter_version = daughter_map[j].daughter_version;
+						break;
 					}
 				}
 
-				break;
+				/*
+				 * Break only if there was a match on both carrier
+				 * and daughterboard. Otherwise, continue with
+				 * carrier defaulting to the last matched
+				 * carrierboard so we have a safe default.
+				 * Needed for carrierboards with colliding MSBs.
+				 */
+				if (j < supp_daughters->ndaughters)
+					break;
 			}
 		} else {
 			if (carrier_map[i].msb_code == carrier_msb_code && carrier_map[i].lsb_code == carrier_lsb_code) {

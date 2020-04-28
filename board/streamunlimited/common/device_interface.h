@@ -12,6 +12,7 @@ enum sue_carrier {
 	SUE_CARRIER_UNKNOWN,
 	SUE_CARRIER_STREAMKIT_PRIME,
 	SUE_CARRIER_FACTORY_TESTER,
+	SUE_CARRIER_MAX,
 };
 
 enum sue_daughter {
