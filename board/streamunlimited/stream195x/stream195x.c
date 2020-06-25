@@ -13,7 +13,9 @@
 #include <asm-generic/gpio.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/mach-imx/gpio.h>
+#ifdef CONFIG_SECURE_BOOT
 #include <asm/mach-imx/hab.h>
+#endif
 #include <asm/arch/clock.h>
 #include <power/axp15060_pmic.h>
 #include <usb.h>
@@ -260,6 +262,7 @@ int board_late_init(void)
 	printf("Setting fit_config: %s\n", buffer);
 	env_set("fit_config", buffer);
 
+#ifdef CONFIG_SECURE_BOOT
 	if (imx_hab_is_enabled()) {
 		printf("Secure boot is enabled, setting secure_board to 1\n");
 		env_set_ulong("secure_board", 1);
@@ -267,6 +270,10 @@ int board_late_init(void)
 		printf("Secure boot is disabled, setting secure_board to 0\n");
 		env_set_ulong("secure_board", 0);
 	}
+#else
+	printf("Secure boot is disabled, setting secure_board to 0\n");
+	env_set_ulong("secure_board", 0);
+#endif
 
 	sue_carrier_late_init(&current_device);
 
@@ -276,6 +283,7 @@ int board_late_init(void)
 #if defined(CONFIG_FASTBOOT)
 int is_fastboot_allowed(void)
 {
+#ifdef CONFIG_SECURE_BOOT
 	if (imx_hab_is_enabled()) {
 		printf("Secure boot is enabled, disallowing fastboot\n");
 		return 0;
@@ -283,5 +291,9 @@ int is_fastboot_allowed(void)
 		printf("Secure boot is disabled, allowing fastboot\n");
 		return 1;
 	}
+#else
+	printf("Allowing fastboot\n");
+	return 1;
+#endif
 }
 #endif

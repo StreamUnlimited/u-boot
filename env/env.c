@@ -7,7 +7,9 @@
 
 #include <common.h>
 #include <environment.h>
+#ifdef CONFIG_SECURE_BOOT
 #include <asm/mach-imx/hab.h>
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -171,10 +173,12 @@ int env_load(void)
 
 	set_default_env("Loading default environment for merging\n");
 
+#ifdef CONFIG_SECURE_BOOT
 	if (imx_hab_is_enabled()) {
 		printf("Board is locked, not merging with environment from NAND\n");
 		return 0;
 	}
+#endif
 
 	for (prio = 0; (drv = env_driver_lookup(ENVOP_LOAD, prio)); prio++) {
 		int ret;
@@ -203,10 +207,12 @@ int env_save(void)
 {
 	struct env_driver *drv;
 
+#ifdef CONFIG_SECURE_BOOT
 	if (imx_hab_is_enabled()) {
 		printf("Board is locked, environment saving is disabled\n");
 		return -EPERM;
 	}
+#endif
 
 	drv = env_driver_lookup(ENVOP_SAVE, 0);
 	if (drv) {
@@ -238,12 +244,14 @@ int env_init(void)
 	int ret = -ENOENT;
 	int prio;
 
+#ifdef CONFIG_SECURE_BOOT
 	if (imx_hab_is_enabled()) {
 		gd->env_addr = (ulong)&default_environment[0];
 		gd->env_valid = ENV_VALID;
 
 		return 0;
 	}
+#endif
 
 	for (prio = 0; (drv = env_driver_lookup(ENVOP_INIT, prio)); prio++) {
 		if (!drv->init || !(ret = drv->init()))

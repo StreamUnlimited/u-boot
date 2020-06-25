@@ -19,7 +19,9 @@
 #include <exports.h>
 #include <environment.h>
 #include <watchdog.h>
+#ifdef CONFIG_SECURE_BOOT
 #include <asm/mach-imx/hab.h>
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -830,10 +832,12 @@ int console_init_r(void)
 		console_doenv(stderr, errdev);
 	}
 
+#ifdef CONFIG_SECURE_BOOT
 	if (imx_hab_is_enabled()) {
 		printf("Secure boot is enabled, input device will be disabled\n");
 		inputdev = search_device(DEV_FLAGS_INPUT, "nulldev");
 	}
+#endif
 
 	if (inputdev != NULL) {
 		/* need to set a console if not done above. */
@@ -920,10 +924,12 @@ int console_init_r(void)
 #endif
 	}
 
+#ifdef CONFIG_SECURE_BOOT
 	if (imx_hab_is_enabled()) {
 		printf("Secure boot is enabled, input device will be disabled\n");
 		inputdev = search_device(DEV_FLAGS_INPUT, "nulldev");
 	}
+#endif
 
 	/* Initializes input console */
 	if (inputdev != NULL) {
