@@ -66,8 +66,14 @@ config TARGET_IMX8MM_DDR4_EVK
 	select SUPPORT_SPL
 	select IMX8M_DDR4
 
-config TARGET_STREAM195X
-	bool "Stream195x"
+config TARGET_STREAM195X_NAND
+	bool "Stream195x NAND"
+	select IMX8MM
+	select SUPPORT_SPL
+	select IMX8M_DDR4
+
+config TARGET_STREAM195X_EMMC
+	bool "Stream195x eMMC"
 	select IMX8MM
 	select SUPPORT_SPL
 	select IMX8M_DDR4

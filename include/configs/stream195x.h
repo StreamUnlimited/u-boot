@@ -83,9 +83,18 @@
 #endif
 
 /* Initial environment variables */
+#ifdef CONFIG_TARGET_STREAM195X_NAND
+#define PARTITIONS "mtdparts_arg=" CONFIG_MTDPARTS_DEFAULT
+#define SUE_FWUPDATE_EXTRA_ENV_SETTINGS SUE_NAND_FWUPDATE_EXTRA_ENV_SETTINGS
+#else
+#define PARTITIONS \
+	"blkdevparts=mmcblk2:512K(u-boot-env),512K(const),48M(swufit),20M(fit),128M(settings),827M(rootfs),-(other)"
+#define SUE_FWUPDATE_EXTRA_ENV_SETTINGS SUE_MMC_FWUPDATE_EXTRA_ENV_SETTINGS
+#endif
+
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"fdt_addr=0x45000000\0"			\
-	"mtdparts_arg=" CONFIG_MTDPARTS_DEFAULT "\0" \
+	PARTITIONS "\0" \
 	"console=ttymxc0,115200\0" \
 	"bootcmd=" SUE_FWUPDATE_BOOTCOMMAND "\0" \
 	"bootcmd_mfg=fastboot 0; reset\0" \
@@ -105,9 +114,28 @@
         (CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
 
 
+#if defined(CONFIG_ENV_IS_IN_MMC)
+#define CONFIG_ENV_OFFSET               0
+#define CONFIG_ENV_SIZE			SZ_512K
+#define CONFIG_SYS_MMC_ENV_DEV		0   /* USDHC2 */
+#else
 #define CONFIG_ENV_OFFSET		((4 + 2 + 2) * SZ_1M)
 #define CONFIG_ENV_SIZE			SZ_256K
+#endif
+
 #define CONFIG_ENV_OVERWRITE
+
+#ifdef CONFIG_TARGET_STREAM195X_EMMC
+/* USDHC */
+#define CONFIG_FSL_ESDHC
+#define CONFIG_FSL_USDHC
+
+#define CONFIG_SYS_FSL_USDHC_NUM	1
+#define CONFIG_SYS_FSL_ESDHC_ADDR       0
+
+#define CONFIG_SUPPORT_EMMC_BOOT	/* eMMC specific */
+#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
+#endif
 
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + 32 * SZ_1M)

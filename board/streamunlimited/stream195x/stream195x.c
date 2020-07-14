@@ -76,7 +76,11 @@ static int fdt_pack_reg(const void *fdt, void *buf, u64 *address, u64 *size,
 	return p - (char *)buf;
 }
 
+#ifdef CONFIG_TARGET_STREAM195X_EMMC
+#define RAM_8GBIT_GPIO	IMX_GPIO_NR(3, 6)
+#else
 #define RAM_8GBIT_GPIO	IMX_GPIO_NR(3, 2)
+#endif
 
 /*
  * Modify the kernel device tree to have the correct memory regions:
@@ -93,7 +97,11 @@ int ft_board_setup(void *blob, bd_t *bd)
 	gpio_request(RAM_8GBIT_GPIO, "module_ram_detect");
 	gpio_direction_input(RAM_8GBIT_GPIO);
 
+#ifdef CONFIG_TARGET_STREAM195X_EMMC
+	has_8gb = gpio_get_value(RAM_8GBIT_GPIO);
+#else
 	has_8gb = !gpio_get_value(RAM_8GBIT_GPIO);
+#endif
 
 	gpio_free(RAM_8GBIT_GPIO);
 

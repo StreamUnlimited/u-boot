@@ -59,7 +59,7 @@ config BOOTCOUNT_RAM
 
 config BOOTCOUNT_FWUPDATE
 	bool "Boot counter using fwupdate flag store"
-	depends on TARGET_STREAM195X
+	depends on TARGET_STREAM195X_NAND || TARGET_STREAM195X_EMMC
 	help
 	  This will use the boot counter in the fwupdate flag driver.
 
