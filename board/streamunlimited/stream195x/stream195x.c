@@ -76,6 +76,8 @@ static int fdt_pack_reg(const void *fdt, void *buf, u64 *address, u64 *size,
 	return p - (char *)buf;
 }
 
+#define RAM_8GBIT_GPIO	IMX_GPIO_NR(3, 2)
+
 /*
  * Modify the kernel device tree to have the correct memory regions:
  * CONFIG_SYS_SDRAM_BASE to PHYS_SDRAM_SIZE is the actual size.
@@ -84,10 +86,18 @@ static int fdt_pack_reg(const void *fdt, void *buf, u64 *address, u64 *size,
  */
 int ft_board_setup(void *blob, bd_t *bd)
 {
-	int nodeoffset, len, ret;
+	int nodeoffset, len, ret, has_8gb;
 	u8 tmp[16]; /* Up to 64-bit address + 64-bit size */
-	u64 size = PHYS_SDRAM_SIZE, optee_size = 0x02000000,
-	    start = CONFIG_SYS_SDRAM_BASE;
+	u64 size, optee_size = 0x02000000, start = CONFIG_SYS_SDRAM_BASE;
+
+	gpio_request(RAM_8GBIT_GPIO, "module_ram_detect");
+	gpio_direction_input(RAM_8GBIT_GPIO);
+
+	has_8gb = !gpio_get_value(RAM_8GBIT_GPIO);
+
+	gpio_free(RAM_8GBIT_GPIO);
+
+	size = has_8gb ? 0x40000000 : 0x20000000;
 
 	/*
 	 * Fix U-boot reporting memory region being CONFIG_SYS_SDRAM_BASE to
