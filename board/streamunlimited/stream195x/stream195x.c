@@ -39,14 +39,103 @@ int board_early_init_f(void)
 
 int dram_init(void)
 {
-	/* rom_pointer[1] contains the size of TEE occupies */
-	if (rom_pointer[1])
-		gd->ram_size = PHYS_SDRAM_SIZE - rom_pointer[1];
-	else
-		gd->ram_size = PHYS_SDRAM_SIZE;
+	/*
+	 * U-boot proper is loaded right after the optee in DRAM, so space needs
+	 * to be reserved for the latter even if not present.
+	 */
+	gd->ram_size = PHYS_SDRAM_SIZE - 0x02000000;
+	return 0;
+}
+
+#if defined(CONFIG_OF_BOARD_SETUP)
+/*
+ * fdt_pack_reg - pack address and size array into the "reg"-suitable stream
+ */
+static int fdt_pack_reg(const void *fdt, void *buf, u64 *address, u64 *size,
+			int n)
+{
+	int i;
+	int address_cells = fdt_address_cells(fdt, 0);
+	int size_cells = fdt_size_cells(fdt, 0);
+	char *p = buf;
+
+	for (i = 0; i < n; i++) {
+		if (address_cells == 2)
+			*(fdt64_t *)p = cpu_to_fdt64(address[i]);
+		else
+			*(fdt32_t *)p = cpu_to_fdt32(address[i]);
+		p += 4 * address_cells;
+
+		if (size_cells == 2)
+			*(fdt64_t *)p = cpu_to_fdt64(size[i]);
+		else
+			*(fdt32_t *)p = cpu_to_fdt32(size[i]);
+		p += 4 * size_cells;
+	}
+
+	return p - (char *)buf;
+}
+
+/*
+ * Modify the kernel device tree to have the correct memory regions:
+ * CONFIG_SYS_SDRAM_BASE to PHYS_SDRAM_SIZE is the actual size.
+ * CONFIG_SYS_SDRAM_BASE to CONFIG_SYS_SDRAM_BASE + 0x01ffffff is reserved for
+ * optee-os.
+ */
+int ft_board_setup(void *blob, bd_t *bd)
+{
+	int nodeoffset, len, ret;
+	u8 tmp[16]; /* Up to 64-bit address + 64-bit size */
+	u64 size = PHYS_SDRAM_SIZE, optee_size = 0x02000000,
+	    start = CONFIG_SYS_SDRAM_BASE;
+
+	/*
+	 * Fix U-boot reporting memory region being CONFIG_SYS_SDRAM_BASE to
+	 * PHYS_SDRAM_SIZE - 0x02000000 instead of CONFIG_SYS_SDRAM_BASE to
+	 * PHYS_SDRAM_SIZE because of dram_init() and U-Boot starting after
+	 * optee-os in DRAM.
+	 */
+	ret = fdt_fixup_memory_banks(blob, &start, &size, 1);
+	if (ret)
+		return ret;
+
+	/* Add optee-os reserved memory region */
+	ret = fdt_check_header(blob);
+	if (ret < 0)
+		return ret;
+
+	nodeoffset = fdt_find_or_add_subnode(blob, 0, "reserved-memory");
+	if (nodeoffset < 0) {
+		printf("WARNING: could not find or add %s %s.\n", "reserved-memory",
+				fdt_strerror(nodeoffset));
+		return nodeoffset;
+	}
+
+	nodeoffset = fdt_find_or_add_subnode(blob, nodeoffset, "optee-os");
+	if (nodeoffset < 0) {
+		printf("WARNING: could not find or add %s %s.\n",
+		       "optee-os@0x40000000", fdt_strerror(nodeoffset));
+		return nodeoffset;
+	}
+
+	ret = fdt_setprop(blob, nodeoffset, "no-map", NULL, 0);
+	if (ret < 0) {
+		printf("WARNING: could not set %s %s.\n", "no-map",
+				fdt_strerror(ret));
+		return ret;
+	}
+
+	len = fdt_pack_reg(blob, tmp, &start, &optee_size, 1);
+	ret = fdt_setprop(blob, nodeoffset, "reg", tmp, len);
+	if (ret < 0) {
+		printf("WARNING: could not set %s %s.\n",
+				"reg", fdt_strerror(ret));
+		return ret;
+	}
 
 	return 0;
 }
+#endif
 
 #ifdef CONFIG_FEC_MXC
 
