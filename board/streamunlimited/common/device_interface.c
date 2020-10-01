@@ -82,14 +82,12 @@ static const struct module_map_entry module_map[] = {
 
 static const char *carrier_names[] = {
 	"unknown",
-	"StreamKit Prime (legacy)",
 	"factory tester",
 	"StreamKit",
 };
 
 static const char *canonical_carrier_names[] = {
 	"unknown",
-	"streamkitprime",
 	"factory",
 	"streamkit"
 };
@@ -139,8 +137,6 @@ struct carrier_map_entry {
  * 0x01, so we always assume it's a normal demo client.
  */
 static const struct carrier_map_entry carrier_map[] = {
-	{ SUE_CARRIER_STREAMKIT_PRIME,		0, 0x04, 0x00, SUE_CARRIER_FLAGS_HAS_DAUGHTER },
-
 	{ SUE_CARRIER_FACTORY_TESTER,		0, 0x19, 0x01, 0 },
 	{ SUE_CARRIER_FACTORY_TESTER,		0, 0x06, 0x18, 0 },
 	{ SUE_CARRIER_FACTORY_TESTER,		1, 0x03, 0x01, 0 },
@@ -233,14 +229,7 @@ static int fill_device_info(struct sue_device_info *device, u16 module_code,
 #else
 
 	/* Without ADC detection we set the carrier board based on the configuration */
-#if defined(CONFIG_TARGET_STREAM195X_STREAMKITPRIME)
-	device->carrier = SUE_CARRIER_STREAMKIT_PRIME;
-	device->carrier_version = 0;
-	device->carrier_flags = SUE_CARRIER_FLAGS_HAS_DAUGHTER;
-
-	device->daughter = SUE_DAUGHTER_VOICE;
-	device->daughter_version = 0;
-#elif defined(CONFIG_TARGET_STREAM195X_STREAMKIT)
+#if defined(CONFIG_TARGET_STREAM195X_STREAMKIT)
 	device->carrier = SUE_CARRIER_STREAMKIT;
 	device->carrier_version = 0;
 	device->carrier_flags = 0;

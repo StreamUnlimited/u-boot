@@ -12,9 +12,6 @@ config SYS_CONFIG_NAME
 choice
 	prompt "Stream195x carrier board"
 
-config TARGET_STREAM195X_STREAMKITPRIME
-	bool "StreamKit Prime (Legacy)"
-
 config TARGET_STREAM195X_STREAMKIT
 	bool "StreamKit"
 
