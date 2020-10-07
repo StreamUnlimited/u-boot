@@ -64,7 +64,7 @@
 \
     "kernel_common_args=setenv bootargs console=ttyS0,115200 panic=1 phy-aml-new-usb3.forceid=0; " \
         /*"fec.macaddr=${eth_int_addr} ${mtdparts} ${optargs}; " */ \
-        "if test ${secure_board} = 1; " \
+        "if test \"${secure_board}\" = 1; " \
             "then " \
             "echo \"INFO: board is locked, booting to runlevel 3\"; " \
             "setenv bootargs ${bootargs} 3; " \
@@ -98,7 +98,7 @@
         "echo \"INFO: loading swu fit image into RAM...\"; " \
         /*"bstate dontunplug; "*/ \
         "run readswufituImage; " \
-        "if test ${secure_board} = 0; " \
+        "if test \"${secure_board}\" = 0; " \
             "then " \
             "echo \"INFO: board is not locked, do not enforce swufit signature\"; " \
             "setenv verify no; " \
@@ -145,7 +145,7 @@
     "swu_boot=" \
         "if fwup fail; " \
             "then " \
-            "if test ${bootcount} -gt ${bootlimit}; " \
+            "if test \"${bootcount}\" -gt ${bootlimit}; " \
                 "then " \
                 "echo \"INFO: bootcount(${bootcount}) greater than bootlimit(${bootlimit})\"; " \
                 /*"bstate hardfailure; "*/ \
