@@ -79,7 +79,7 @@
     "kernel_common_args=const toenv eth_int_addr; " \
         "setenv bootargs console=${console} panic=1 ${wdtargs} " \
         "fec.macaddr=${eth_int_addr} ${mtdparts} ${optargs}; " \
-        "if test ${secure_board} = 1; " \
+        "if test \"${secure_board}\" = 1; " \
             "then " \
             "echo \"INFO: board is locked, booting to runlevel 3\"; " \
             "setenv bootargs ${bootargs} 3; " \
@@ -113,7 +113,7 @@
         "echo \"INFO: loading swu fit image into RAM...\"; " \
         "bstate dontunplug; " \
         "run readswufituImage; " \
-        "if test ${secure_board} = 0; " \
+        "if test \"${secure_board}\" = 0; " \
             "then " \
             "echo \"INFO: board is not locked, do not enforce swufit signature\"; " \
             "setenv verify no; " \
@@ -190,7 +190,7 @@
         "if fwup update; " \
             "then " \
             "min_boot_retry=3;" \
-            "if test ${bootcount} -gt ${min_boot_retry}; " \
+            "if test \"${bootcount}\" -gt ${min_boot_retry}; " \
                 "then " \
                 "echo \"INFO: Update flag is set, bootcount is greater than ${min_boot_retry}\"; " \
                 "swufail=yes; " \
@@ -202,7 +202,7 @@
             "if fwup fail; " \
                 "then " \
                 "min_boot_retry=3;" \
-                "if test ${bootcount} -gt ${min_boot_retry}; " \
+                "if test \"${bootcount}\" -gt ${min_boot_retry}; " \
                     "then " \
                     "echo \"INFO: Fail flag is set, bootcount is greater than ${min_boot_retry}\"; " \
                     "boot_swupdate=yes; " \
