@@ -43,7 +43,7 @@ int dram_init(void)
 	 * U-boot proper is loaded right after the optee in DRAM, so space needs
 	 * to be reserved for the latter even if not present.
 	 */
-	gd->ram_size = PHYS_SDRAM_SIZE - 0x02000000;
+	gd->ram_size = PHYS_SDRAM_SIZE - 0x800000;
 	return 0;
 }
 
@@ -92,7 +92,7 @@ int ft_board_setup(void *blob, bd_t *bd)
 {
 	int nodeoffset, len, ret, has_8gb;
 	u8 tmp[16]; /* Up to 64-bit address + 64-bit size */
-	u64 size, optee_size = 0x02000000, start = CONFIG_SYS_SDRAM_BASE;
+	u64 size, optee_size = 0x800000, start = CONFIG_SYS_SDRAM_BASE;
 
 	gpio_request(RAM_8GBIT_GPIO, "module_ram_detect");
 	gpio_direction_input(RAM_8GBIT_GPIO);
