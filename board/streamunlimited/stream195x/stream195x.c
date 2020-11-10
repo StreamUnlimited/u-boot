@@ -356,17 +356,11 @@ int board_late_init(void)
 		printf("ERROR: fwupdate_init() call failed!\n");
 	}
 
-
-#if defined(CONFIG_TARGET_STREAM195X_STREAMKIT)
-	snprintf(buffer, sizeof(buffer), "%s_l%d_streamkit",
+	snprintf(buffer, sizeof(buffer), "%s_l%d",
 			sue_device_get_canonical_module_name(&current_device),
 			current_device.module_version);
-#else
-	#error "Make sure a valid Stream195x carrier board is selected"
-#endif
-
-	printf("Setting fit_config: %s\n", buffer);
-	env_set("fit_config", buffer);
+	printf("Setting module_config: %s\n", buffer);
+	env_set("module_config", buffer);
 
 #ifdef CONFIG_SECURE_BOOT
 	if (imx_hab_is_enabled()) {

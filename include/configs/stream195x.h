@@ -86,20 +86,41 @@
 #ifdef CONFIG_TARGET_STREAM195X_NAND
 #define PARTITIONS "mtdparts_arg=" CONFIG_MTDPARTS_DEFAULT
 #define SUE_FWUPDATE_EXTRA_ENV_SETTINGS SUE_NAND_FWUPDATE_EXTRA_ENV_SETTINGS
+#define CONST_ENV_LOADING "load_const=nand read ${loadaddr} constants\0"
 #else
 #define PARTITIONS \
 	"blkdevparts=mmcblk2:512K(u-boot-env),512K(const),48M(swufit),20M(fit),128M(settings),827M(rootfs),-(other)"
 #define SUE_FWUPDATE_EXTRA_ENV_SETTINGS SUE_MMC_FWUPDATE_EXTRA_ENV_SETTINGS
+/* Constants partition is right after u-boot environment which is 512KB (0x400
+ * blocks) big. The partition takes 512KB (0x400 blocks) in eMMC. It is assumed
+ * that u-boot environment and constants partitions are on the same eMMC device.
+ */
+#define CONST_ENV_LOADING "mmc_const_offset=400\0"	\
+	"mmc_const_size=400\0"				\
+	"load_const=" \
+		"mmc dev " __stringify(CONFIG_SYS_MMC_ENV_DEV) "; " \
+		"mmc read ${loadaddr} ${mmc_const_offset} ${mmc_const_size}\0"
 #endif
+
+/* Space separated list of variables that can be **safely** imported from the
+ * constants partition into U-Boot environment. */
+#define ALLOWED_CONST_VARIABLES "carrierboard"
+
+/* The environment (const partition) written by fw_printenv is in binary mode */
+#define CONST_ENV_IMPORTING "import_const=env import -b ${loadaddr} - " ALLOWED_CONST_VARIABLES "\0"
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"fdt_addr=0x43800000\0"			\
 	PARTITIONS "\0" \
+	"carrierboard=kit1955\0" \
 	"console=ttymxc0,115200\0" \
-	"bootcmd=" SUE_FWUPDATE_BOOTCOMMAND "\0" \
+	"bootcmd=run setfitconfig; " SUE_FWUPDATE_BOOTCOMMAND "\0" \
 	"bootcmd_mfg=fastboot 0; reset\0" \
 	"mfg_run=run kernel_common_args; setenv bootargs ${bootargs} rootfstype=ramfs; bootm ${fdt_addr}#default_factory@1\0" \
-	SUE_FWUPDATE_EXTRA_ENV_SETTINGS
+	"setfitconfig=run load_const; run import_const; setenv fit_config ${module_config}_${carrierboard}\0" \
+	SUE_FWUPDATE_EXTRA_ENV_SETTINGS \
+	CONST_ENV_LOADING \
+	CONST_ENV_IMPORTING
 
 /* Link Definitions */
 #define CONFIG_LOADADDR			0x40c80000
