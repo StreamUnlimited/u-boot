@@ -11,7 +11,7 @@
 
 #include "device_interface.h"
 
-#define FWUP_TIMEOUT	3000	/* in ms */
+#define FWUP_TIMEOUT	2200	/* in ms */
 #define FWUP_GPIO IMX_GPIO_NR(5, 27)
 #define FWUP_GPIO_NAME "BUTTON_SENSE"
 
