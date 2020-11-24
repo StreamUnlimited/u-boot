@@ -105,6 +105,9 @@ int ft_board_setup(void *blob, bd_t *bd)
 
 	gpio_free(RAM_8GBIT_GPIO);
 
+	if (has_8gb)
+		puts("Actual DRAM size of 1GB detected. Fixing up Device Tree.");
+
 	size = has_8gb ? 0x40000000 : 0x20000000;
 
 	/*
