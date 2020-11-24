@@ -357,18 +357,14 @@ int board_late_init(void)
 	}
 
 
-	if (current_device.carrier_flags & SUE_CARRIER_FLAGS_HAS_DAUGHTER) {
-		snprintf(buffer, sizeof(buffer), "%s_l%d_%s_%s",
-				sue_device_get_canonical_module_name(&current_device),
-				current_device.module_version,
-				sue_device_get_canonical_carrier_name(&current_device),
-				sue_device_get_canonical_daughter_name(&current_device));
-	} else {
-		snprintf(buffer, sizeof(buffer), "%s_l%d_%s",
-				sue_device_get_canonical_module_name(&current_device),
-				current_device.module_version,
-				sue_device_get_canonical_carrier_name(&current_device));
-	}
+#if defined(CONFIG_TARGET_STREAM195X_STREAMKIT)
+	snprintf(buffer, sizeof(buffer), "%s_l%d_streamkit",
+			sue_device_get_canonical_module_name(&current_device),
+			current_device.module_version);
+#else
+	#error "Make sure a valid Stream195x carrier board is selected"
+#endif
+
 	printf("Setting fit_config: %s\n", buffer);
 	env_set("fit_config", buffer);
 
