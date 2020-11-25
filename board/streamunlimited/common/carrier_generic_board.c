@@ -3,7 +3,7 @@
 
 #include "device_interface.h"
 
-#define FWUP_TIMEOUT	3000	/* in ms */
+#define FWUP_TIMEOUT	2200	/* in ms */
 #define FWUP_GPIO GPIOAO_3
 #define FWUP_GPIO_NAME "GPIOAO_3"
 
