@@ -88,6 +88,7 @@
             "fi; " \
         "fi; " \
         "boot_swupdate=no; " \
+        "swufail=no; " \
         "if test ${bootcount} -eq 1; " \
             "then " \
             "echo \"INFO: Bootcount = 1, checking if board is in factory state or USB update request is active\"; " \
