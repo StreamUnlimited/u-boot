@@ -109,10 +109,10 @@
             "then " \
             "min_boot_retry=3;" \
             "if test \"${bootcount}\" -gt ${min_boot_retry}; " \
-                " then " \
+                "then " \
                     "echo \"INFO: Fail flag is set, bootcount is greater than ${min_boot_retry}\"; " \
                     "boot_swupdate=yes; " \
-                " else " \
+                "else " \
                     "echo \"INFO: Fail flag is set but bootcount not greater than ${min_boot_retry}\"; " \
                 "fi; " \
         "fi; " \
