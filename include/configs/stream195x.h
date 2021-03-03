@@ -116,7 +116,7 @@
 	"console=ttymxc0,115200\0" \
 	"bootcmd=run setfitconfig; " SUE_FWUPDATE_BOOTCOMMAND "\0" \
 	"bootcmd_mfg=fastboot 0; reset\0" \
-	"mfg_run=run kernel_common_args; setenv bootargs ${bootargs} rootfstype=ramfs; bootm ${fdt_addr}#default_factory@1\0" \
+	"mfg_run=run kernel_common_args; setenv bootargs ${bootargs} rootfstype=ramfs loglevel=5; bootm ${fdt_addr}#default_factory@1\0" \
 	"setfitconfig=run load_const; run import_const; setenv fit_config ${module_config}_${carrierboard}\0" \
 	SUE_FWUPDATE_EXTRA_ENV_SETTINGS \
 	CONST_ENV_LOADING \
