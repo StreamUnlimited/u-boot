@@ -111,23 +111,30 @@ static iomux_v3_cfg_t const gpmi_pads[] = {
 };
 #endif
 
-
+#ifdef CONFIG_TARGET_STREAM195X_NAND
 #define MODULE_ID0_GPIO IMX_GPIO_NR(3, 2)
 static iomux_v3_cfg_t const module_id0_pads[] = {
 	IMX8MM_PAD_NAND_CE1_B_GPIO3_IO2 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
+#else
+#define MODULE_ID0_GPIO IMX_GPIO_NR(3, 6)
+static iomux_v3_cfg_t const module_id0_pads[] = {
+	IMX8MM_PAD_NAND_DATA00_GPIO3_IO6 | MUX_PAD_CTRL(NO_PAD_CTRL),
+};
+#endif
 
 extern struct dram_timing_info ddr3l_1x4Gb_dram_timing;
 extern struct dram_timing_info ddr3l_2x2Gb_dram_timing;
+extern struct dram_timing_info ddr4_1x4Gb_timing;
 extern struct dram_timing_info ddr4_1x8Gb_timing;
 
 void spl_dram_init(void)
 {
-#ifdef CONFIG_TARGET_STREAM195X_NAND
 	imx_iomux_v3_setup_multiple_pads(module_id0_pads, ARRAY_SIZE(module_id0_pads));
 	gpio_request(MODULE_ID0_GPIO, "module_id0");
 	gpio_direction_input(MODULE_ID0_GPIO);
 
+#ifdef CONFIG_TARGET_STREAM195X_NAND
 	if (gpio_get_value(MODULE_ID0_GPIO)) {
 		printf("calling ddr_init() with ddr3l_1x4Gb_dram_timing\n");
 		ddr_init(&ddr3l_1x4Gb_dram_timing);
@@ -136,7 +143,13 @@ void spl_dram_init(void)
 		ddr_init(&ddr3l_2x2Gb_dram_timing);
 	}
 #else
-	ddr_init(&ddr4_1x8Gb_timing);
+	if (gpio_get_value(MODULE_ID0_GPIO)) {
+		printf("calling ddr_init() with ddr4_1x8Gb_timing\n");
+		ddr_init(&ddr4_1x8Gb_timing);
+	} else {
+		printf("calling ddr_init() with ddr4_1x4Gb_timing\n");
+		ddr_init(&ddr4_1x4Gb_timing);
+	}
 #endif
 }
 
