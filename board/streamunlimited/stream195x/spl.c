@@ -119,7 +119,7 @@ static iomux_v3_cfg_t const module_id0_pads[] = {
 
 extern struct dram_timing_info ddr3l_1x4Gb_dram_timing;
 extern struct dram_timing_info ddr3l_2x2Gb_dram_timing;
-extern struct dram_timing_info ddr4_timing;
+extern struct dram_timing_info ddr4_1x8Gb_timing;
 
 void spl_dram_init(void)
 {
@@ -136,7 +136,7 @@ void spl_dram_init(void)
 		ddr_init(&ddr3l_2x2Gb_dram_timing);
 	}
 #else
-	ddr_init(&ddr4_timing);
+	ddr_init(&ddr4_1x8Gb_timing);
 #endif
 }
 
