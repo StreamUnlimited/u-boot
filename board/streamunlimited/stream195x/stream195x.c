@@ -176,17 +176,17 @@ static int setup_fec(void)
 #if defined(CONFIG_TARGET_STREAM195X_STREAMKIT)
 	gpio_request(FEC_PDOWN_PAD, "fec1_pdown");
 	gpio_direction_output(FEC_PDOWN_PAD, 0);
-	udelay(1000);
+	udelay(10000);
 	gpio_direction_output(FEC_PDOWN_PAD, 1);
-	udelay(1000);
+	udelay(10000);
 #endif
 
 	/* Reset any external ethernet PHY */
 	gpio_request(FEC_RST_PAD, "fec1_rst");
 	gpio_direction_output(FEC_RST_PAD, 0);
-	udelay(1000);
+	udelay(10000);
 	gpio_direction_output(FEC_RST_PAD, 1);
-	udelay(1000);
+	udelay(10000);
 
 	/* Use the internally generated RMII clock */
 	setbits_le32(&iomuxc_gpr_regs->gpr[1],
