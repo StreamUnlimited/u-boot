@@ -367,6 +367,15 @@ static int spl_fit_image_get_os(const void *fit, int noffset, uint8_t *os)
 #endif
 }
 
+/*
+ * Weak default function to allow fixes after fit header
+ * is loaded.
+ */
+__weak void *spl_load_simple_fit_fix_load(const void *fit)
+{
+	return (void *)fit;
+}
+
 int spl_load_simple_fit(struct spl_image_info *spl_image,
 			struct spl_load_info *info, ulong sector, void *fit)
 {
@@ -414,6 +423,8 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 
 	if (count == 0)
 		return -EIO;
+
+	fit = spl_load_simple_fit_fix_load(fit);
 
 	/* find the node holding the images information */
 	images = fdt_path_offset(fit, FIT_IMAGES_PATH);

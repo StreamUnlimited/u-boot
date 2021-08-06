@@ -66,6 +66,14 @@ struct spl_load_info {
 binman_sym_extern(ulong, u_boot_any, pos);
 
 /**
+ * spl_load_simple_fit_fix_load() - Hook to make fixes
+ * after fit image header is loaded
+ *
+ * Returns pointer to fit
+ */
+void *spl_load_simple_fit_fix_load(const void *fit);
+
+/**
  * spl_load_simple_fit() - Loads a fit image from a device.
  * @spl_image:	Image description to set up
  * @info:	Structure containing the information required to load data.
