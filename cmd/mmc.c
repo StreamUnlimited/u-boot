@@ -553,6 +553,11 @@ static int do_mmc_hwpartition(cmd_tbl_t *cmdtp, int flag,
 	if (!mmc)
 		return CMD_RET_FAILURE;
 
+	if (IS_SD(mmc)) {
+		puts("SD doesn't support partitioning\n");
+		return CMD_RET_FAILURE;
+	}
+
 	if (argc < 1)
 		return CMD_RET_USAGE;
 	i = 1;
