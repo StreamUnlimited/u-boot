@@ -75,6 +75,10 @@ static const struct module_map_entry module_map[] = {
 	{ SUE_MODULE_S1832, 1, 0x1F }, // MSB is not deterministic on Stream1832 L1
 	{ SUE_MODULE_S1832, 2, 0x1E },
 	{ SUE_MODULE_S1832, 3, 0x00 },
+	{ SUE_MODULE_S1832, 4, 0x04 }, //Stream1832A L4(L0-AXP313A) 4.4W
+	{ SUE_MODULE_S1832, 4, 0x05 }, //Stream1832A L4(L0-AXP313A) 4.4W MP
+	{ SUE_MODULE_S1832, 4, 0x06 }, //Stream1832A L4(L0-AXP313A) 2.2W
+	{ SUE_MODULE_S1832, 4, 0x07 }, //Stream1832A L4(L0-AXP313A) 2.2W MP
 };
 
 /*
