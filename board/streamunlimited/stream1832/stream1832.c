@@ -53,6 +53,10 @@
 #include <axp152.h>
 #endif
 
+#ifdef CONFIG_AXP313_POWER
+#include <axp313.h>
+#endif
+
 #include <asm/reboot.h>
 
 #include "../common/fwupdate.h"
@@ -462,13 +466,6 @@ int board_axp152_init(void)
 {
 	int ret = 0;
 
-	/* first try to find the AXP at addr 0x32 */
-	ret = axp152_init(0x32);
-	if (ret) {
-		/* if this fails we try to use 0x30, which was a hardware bug on older modules */
-		ret = axp152_init(0x30);
-	}
-
 	/*
 	 * Set the DCDC workmode of the DCDC2 (VDDCPU/VDD_ARM) to PWM only mode. The reason is
 	 * that per default the board boots in 1.2 GHz mode which requires the PWM only mode.
@@ -510,6 +507,56 @@ int board_axp152_init(void)
 	ret |= axp152_set_gpio2_ldo(3300);
 
 	printf("AXP152 init done: %d\n", ret);
+
+	return ret;
+}
+#endif
+
+#ifdef CONFIG_AXP313_POWER
+int board_axp313_init(void)
+{
+	int ret = 0;
+
+	/*
+	 * Set the DCDC workmode of the DCDC2 (VDDCPU/VDD_ARM) to PWM only mode. The reason is
+	 * that per default the board boots in 1.2 GHz mode which requires the PWM only mode.
+	 * The automode leads to stability issues on 1.2 GHz and up. The workmode for lower
+	 * operating points will be handled by the kernel.
+	 */
+	ret |= axp313_set_dcdc_workmode(AXP313_DCDC1, AXP313_DCDC_WORKMODE_PWM);
+
+	/*
+	 * Also reset DCDC3 to 1.8 V ,This is also the default value of the AXP313 after power on.
+	 */
+	ret |= axp313_set_dcdc3(1800);
+
+	/* Set DCDC1 to 1.１V */
+	ret |= axp313_set_dcdc1(1100);
+
+	/* Set VDD_EE to 0.95V */
+	ret |= axp313_set_dcdc2(1050);
+
+	/* Set ALDO to 3.1V */
+	ret |= axp313_set_aldo1(AXP313_ALDO_3V3);
+
+	/* Set DLDO to 3.3V */
+	ret |= axp313_set_dldo1(AXP313_ALDO_3V3);
+
+	/* Set power off sequence 1BH bi3 to 1 first open last off */
+	ret |= axp313_set_poweroff_first_open_last_off();
+
+	/*
+	 * Always cycle WIFI_VRF otherwise the chip might be in some inconsistent state
+	 *
+	 * After doing the measurements with the HW department, we have to wait for 50 ms
+	 * before the power rails are cleanly at 0.
+	 * AX313A, it use PIN_GPIOZ_10(WIFI_VREF_ON) to control WIFI_VREF
+	 */
+	amlogic_wifi_vrf_disable();
+	udelay(50000);
+	amlogic_wifi_vrf_enable();
+
+	printf("AXP313 init done: %d\n", ret);
 
 	return ret;
 }
@@ -573,13 +620,7 @@ static int reset_cause(void)
 
 int board_init(void)
 {
-#ifdef CONFIG_SYS_I2C_AML
-	board_i2c_init();
-#endif
-
-#ifdef CONFIG_AXP152_POWER
-	board_axp152_init();
-#endif
+	int ret;
 	/*
 	 * After the AXP was initialized the CPU voltage will be at 1.1 V, so we can
 	 * set back the SYS_PLL configuration from 672 MHz (0xC0020270) to
@@ -593,6 +634,33 @@ int board_init(void)
 
 	sue_device_detect(&current_device);
 
+#ifdef CONFIG_SYS_I2C_AML
+	board_i2c_init();
+#endif
+
+	if (current_device.module_version < 4) {
+		/* for Stream1832 L1, L2 and L3 we first try to find the AXP152 at addr 0x32 */
+		ret = axp152_init(0x32);
+		if (!ret) {
+			board_axp152_init();
+		} else {
+			/* if this fails we try to use 0x30, which was a hardware bug on older modules */
+			ret = axp152_init(0x30);
+			if (!ret) {
+				board_axp152_init();
+			} else {
+				printf("Error, i2c failed to communicate with PMIC AXP152, i2c slave address 0x30 : %d\n", ret);
+			}
+		}
+	} else {
+		/* for Stream1832 L4 and higher we try to find the AXP313 only at addr 0x36 */
+		ret = axp313_init(0x36);
+		if (!ret) {
+			board_axp313_init();
+		} else {
+			printf("Error, i2c failed to communicate with PMIC AXP313A,i2c slave address 0x36 : %d\n", ret);
+		}
+	}
 #ifdef CONFIG_AML_V2_FACTORY_BURN
 	aml_try_factory_usb_burning(0, gd->bd);
 #endif// #ifdef CONFIG_AML_V2_FACTORY_BURN
