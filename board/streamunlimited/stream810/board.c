@@ -22,6 +22,7 @@
 #include <i2c.h>
 #include <asm/imx-common/mxc_i2c.h>
 #include <axp152.h>
+#include <axp313.h>
 #include <asm/arch/imx-regs.h>
 #include <const_env_common.h>
 
@@ -464,30 +465,84 @@ int board_init(void)
 #ifdef CONFIG_POWER
 int power_init_board(void)
 {
+	int ret;
 	i2c_set_bus_num(3);
 
-	axp152_init();
+	if (current_device.module_version < 5) {
+		axp152_init();
 
-	/*
-	 * Set the DCDC2 (VDD_SOC_IN) workmode back to auto since it might have
-	 * been changed to PWM in the kernel before rebooting.
-	 */
-	axp152_set_dcdc_workmode(AXP152_DCDC2, AXP152_DCDC_WORKMODE_AUTO);
+		/*
+		 * Set the DCDC2 (VDD_SOC_IN) workmode back to auto since it might have
+		 * been changed to PWM in the kernel before rebooting.
+		 */
+		axp152_set_dcdc_workmode(AXP152_DCDC2, AXP152_DCDC_WORKMODE_AUTO);
 
-	/* Disable LDO0 and ALDO2 */
-	axp152_disable_ldo0();
-	axp152_set_power_output(0xFB);
-	mdelay(20);
+		/* Disable LDO0 and ALDO2 */
+		axp152_disable_ldo0();
+		axp152_set_power_output(0xFB);
+		mdelay(20);
 
-	axp152_set_ldo0(AXP152_LDO0_3V3, AXP152_LDO0_CURR_1500MA);
-	axp152_set_aldo2(AXP152_ALDO_3V3);
+		axp152_set_ldo0(AXP152_LDO0_3V3, AXP152_LDO0_CURR_1500MA);
+		axp152_set_aldo2(AXP152_ALDO_3V3);
 
-	axp152_set_dcdc3(1350);
-	axp152_set_power_output(0xFF);
+		axp152_set_dcdc3(1350);
+		axp152_set_power_output(0xFF);
+	} else {
+		/* for Stream810X3 we try to find the AXP313 only at addr 0x36 */
+		ret = axp313_init(0x36);
+		if (!ret) {
+			board_axp313_init();
+		} else {
+			printf("Error, i2c failed to communicate with PMIC AXP313A,i2c slave address 0x36 : %d\n", ret);
+		}
+	}
 
-	return 0;
+        return 0;
 }
 #endif
+
+#ifdef CONFIG_AXP313_POWER
+int board_axp313_init(void)
+{
+	int ret = 0;
+
+	i2c_set_bus_num(3);
+
+
+	/*
+	 * Set the DCDC workmode of the DCDC2 (VDDCPU/VDD_ARM) to PWM only mode. The reason is
+	 * that per default the board boots in 1.2 GHz mode which requires the PWM only mode.
+	 * The automode leads to stability issues on 1.2 GHz and up. The workmode for lower
+	 * operating points will be handled by the kernel.
+	 */
+	ret |= axp313_set_dcdc_workmode(AXP313_DCDC1, AXP313_DCDC_WORKMODE_PWM);
+
+	/*
+	 * Also reset DCDC3 to 1.8 V ,This is also the default value of the AXP313 after power on.
+	 */
+	ret |= axp313_set_dcdc3(1800);
+
+	/* Set DCDC1 to 1.１V */
+	ret |= axp313_set_dcdc1(1100);
+
+	/* Set DCDC2 to 0.85V so the VDD_SOC is 1V since there is a tweaking the voltage by HW */
+	ret |= axp313_set_dcdc2(850);
+
+	/* Set ALDO to 3.1V */
+	ret |= axp313_set_aldo1(AXP313_ALDO_3V3);
+
+	/* Set DLDO to 3.3V */
+	ret |= axp313_set_dldo1(AXP313_ALDO_3V3);
+
+	/* Set power off sequence 1BH bi3 to 1 first open last off */
+	ret |= axp313_set_poweroff_sequence();
+
+	printf("AXP313 init done: %d\n", ret);
+
+	return ret;
+}
+#endif
+
 
 int board_late_init(void)
 {
