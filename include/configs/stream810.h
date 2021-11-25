@@ -145,7 +145,12 @@
 #define CONFIG_MFG_ENV_SETTINGS \
 	"mfg_args=setenv bootargs console=${console},${baudrate} ${mtdparts} " \
 		"root=/dev/ram0 rdinit=/linuxrc\0" \
-	"bootcmd_mfg=fwup mtdparts; run mfg_args; setenv loadaddr ${fdt_addr}; bootm ${loadaddr}#factory@1;\0"
+	"bootcmd_mfg=fwup mtdparts; run mfg_args; setenv loadaddr ${fdt_addr}; " \
+		"if test ${module_version} -lt 5; then " \
+			"bootm ${loadaddr}#factory@1; " \
+		"else " \
+			"bootm ${loadaddr}#stream810x3_factory@1; " \
+		"fi\0"
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 		CONFIG_MFG_ENV_SETTINGS \

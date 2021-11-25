@@ -70,8 +70,13 @@
             "echo \"INFO: will boot fit config ${fit_config}@1\"; " \
             "bootm ${fdt_addr}#${fit_config}@1; " \
         "fi; " \
-        "echo \"INFO: will try to boot the default fit config\"; " \
-        "bootm ${fdt_addr}; " \
+	"if test ${module_version} -lt 5; then " \
+		"echo \"INFO: will try to boot the stream810_factory fit config\"; " \
+		"bootm ${fdt_addr}; " \
+	"else " \
+		"echo \"INFO: will try to boot the stream810x3_factory fit config\"; " \
+		"bootm ${fdt_addr}#stream810x3_factory@1; " \
+	"fi; " \
         "echo \"INFO: fit boot failed...\"; " \
         "echo \"INFO: resetting...\"; " \
         "reset;\0" \
