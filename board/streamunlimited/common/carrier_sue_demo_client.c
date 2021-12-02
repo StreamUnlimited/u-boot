@@ -13,7 +13,7 @@ static int alt_fwup_request = 0;
 
 static const iomux_v3_cfg_t fwupdate_pads[] = {
 	MX7D_PAD_SAI2_TX_BCLK__GPIO6_IO20 | MUX_PAD_CTRL(PAD_CTL_PUE | PAD_CTL_PUS_PU5KOHM),
-	MX7D_PAD_LCD_DATA16__GPIO3_IO21 | MUX_PAD_CTRL(NO_PAD_CTRL),
+	MX7D_PAD_LCD_DATA16__GPIO3_IO21 | MUX_PAD_CTRL(PAD_CTL_PUS_PU47KOHM),
 };
 
 static int demo_client_init(const struct sue_device_info *device)
