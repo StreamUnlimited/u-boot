@@ -96,6 +96,7 @@ int fwupdate_init(const struct sue_device_info *device_info)
 {
 	int status = 0;
 	char* bootlimit;
+	char* module_version;
 
 	bootlimit = getenv("bootlimit");
 	if (NULL == bootlimit) {
@@ -105,6 +106,13 @@ int fwupdate_init(const struct sue_device_info *device_info)
 	}
 
 	current_device = device_info;
+
+	module_version = getenv("module_version");
+	if (NULL == module_version) {
+		char buf[8];
+		sprintf(buf, "%u", current_device->module_version);
+		setenv("module_version", buf);
+	}
 
 	return status;
 }
