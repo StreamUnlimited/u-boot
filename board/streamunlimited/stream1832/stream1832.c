@@ -634,6 +634,8 @@ int board_init(void)
 
 	sue_device_detect(&current_device);
 
+	sue_print_device_info(&current_device);
+
 #ifdef CONFIG_SYS_I2C_AML
 	board_i2c_init();
 #endif
