@@ -89,7 +89,7 @@ static const struct module_map_entry module_map[] = {
 	{ SUE_MODULE_S810_EXTENDED_PLUS,	3, 0x11, 0x18 },
 	{ SUE_MODULE_S810_BASIC_44W,		4, 0x11, 0x04 },
 	{ SUE_MODULE_S810_EXTENDED_24EW,	4, 0x11, 0x03 },
-	{ SUE_MODULE_S810X3,			5, 0x11, 0x7 },
+	{ SUE_MODULE_S810X3_EXTENDED,		5, 0x11, 0x07 },
 };
 
 static const char *carrier_names[] = {
