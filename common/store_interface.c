@@ -703,7 +703,7 @@ static int do_store_size(cmd_tbl_t * cmdtp, int flag, int argc, char * const arg
 {
     int ret = 0;
     uint64_t addr;
-    char *cmd = NULL, *s = NULL;
+    char *cmd = "", *s = NULL;
     char	str[128];
 
     if (argc < 4) return CMD_RET_USAGE;
@@ -1073,7 +1073,7 @@ static int do_store_scrub(cmd_tbl_t * cmdtp, int flag, int argc, char * const ar
 {
     int ret = 0;
     loff_t off=0;
-    char *cmd = NULL;
+    char *cmd = "";
     char	str[128];
 
     off = (ulong)simple_strtoul(argv[2], NULL, 16);
@@ -1147,7 +1147,7 @@ static int do_store_rom_protect(cmd_tbl_t * cmdtp, int flag, int argc, char * co
 {
 
 #if defined(CONFIG_AML_NAND)
-    char *cmd = NULL;
+    char *cmd = "";
     char	str[128];
     char *area = argv[2];
 #endif
@@ -1177,7 +1177,7 @@ static int do_store_rom_write(cmd_tbl_t * cmdtp, int flag, int argc, char * cons
 {
     uint64_t addr;
     loff_t off=0, size=0;
-    char *cmd = NULL;
+    char *cmd = "";
     char	str[128];
     int ret = 0;
     int i = 0;
@@ -1373,7 +1373,7 @@ static int do_store_rom_read(cmd_tbl_t * cmdtp, int flag, int argc, char * const
 {
     uint64_t addr;
     loff_t off=0, size=0;
-    char *cmd = NULL;
+    char *cmd = "";
     char	str[128];
     int ret = 0;
     int i = 0;
@@ -1592,7 +1592,7 @@ static int do_store_read(cmd_tbl_t * cmdtp, int flag, int argc, char * const arg
 {
     uint64_t addr;
     loff_t off=0, size=0;
-    char *cmd = NULL;
+    char *cmd = "";
     char	str[128];
     int ret = 0;
     char * s = argv[2];
@@ -1689,7 +1689,7 @@ static int do_store_write(cmd_tbl_t * cmdtp, int flag, int argc, char * const ar
 {
     uint64_t addr;
     loff_t off=0, size=0;
-    char *cmd = NULL;
+    char *cmd = "";
     char	str[128];
     int ret = 0;
     char * s = argv[2];
