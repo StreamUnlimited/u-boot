@@ -25,6 +25,8 @@
 #endif
 #include <usb.h>
 
+#include "spl_anti_rollback.h"
+
 DECLARE_GLOBAL_DATA_PTR;
 
 #define UART_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_FSEL1 | PAD_CTL_PE | PAD_CTL_PUE)
@@ -244,4 +246,7 @@ void board_init_f(ulong dummy)
 
 	/* DDR initialization */
 	spl_dram_init();
+
+	/* Anti-rollback protection */
+	spl_anti_rollback_check();
 }
