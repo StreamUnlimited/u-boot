@@ -621,16 +621,6 @@ static int reset_cause(void)
 int board_init(void)
 {
 	int ret;
-	/*
-	 * After the AXP was initialized the CPU voltage will be at 1.1 V, so we can
-	 * set back the SYS_PLL configuration from 672 MHz (0xC0020270) to
-	 * 1344 MHz (0xC0010270) for a faster boot process.
-	 *
-	 * The 672 MHz are configured by the BL2 based on the CONFIG_CPU_CLK value, the
-	 * hex value below for the 1344 MHz setting was determined by setting CONFIG_CPU_CLK
-	 * to 1344 MHz and reading back HHI_SYS_PLL_CNTL.
-	 */
-	writel(0xC0010270, HHI_SYS_PLL_CNTL);
 
 	sue_device_detect(&current_device);
 
