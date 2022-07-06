@@ -171,8 +171,8 @@
             "reset; " \
         "fi;\0" \
 \
-    "kernel_common_args=setenv bootargs console=${console} panic=1 " PARTITIONS "; " \
-        /*"fec.macaddr=${eth_int_addr} ${mtdparts} ${optargs}; " */ \
+    "kernel_common_args=setenv bootargs console=${console} panic=1 " PARTITIONS " ${optargs}; " \
+        /*"fec.macaddr=${eth_int_addr} ${mtdparts}; " */ \
         "if test \"${secure_board}\" = 1; " \
             "then " \
             "echo \"INFO: board is locked, booting to runlevel 3\"; " \
@@ -238,8 +238,8 @@
             "reset; " \
         "fi;\0" \
 \
-    "kernel_common_args=setenv bootargs console=${console} panic=1 ${mtdparts_arg}; " \
-        /*"fec.macaddr=${eth_int_addr} ${mtdparts} ${optargs}; " */ \
+    "kernel_common_args=setenv bootargs console=${console} panic=1 ${mtdparts_arg} ${optargs}; " \
+        /*"fec.macaddr=${eth_int_addr} ${mtdparts}; " */ \
         "if test \"${secure_board}\" = 1; " \
             "then " \
             "echo \"INFO: board is locked, booting to runlevel 3\"; " \
