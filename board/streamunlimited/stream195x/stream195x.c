@@ -13,6 +13,8 @@
 #include <asm-generic/gpio.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/mach-imx/gpio.h>
+#include <asm/mach-imx/iomux-v3.h>
+#include <asm/arch/imx8mm_pins.h>
 #ifdef CONFIG_SECURE_BOOT
 #include <asm/mach-imx/hab.h>
 #endif
@@ -28,11 +30,20 @@ static struct sue_device_info __attribute__((section (".data"))) current_device;
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#if defined(CONFIG_IMX_WATCHDOG)
+#define WDOG_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_ODE | PAD_CTL_PUE | PAD_CTL_PE)
+static iomux_v3_cfg_t const wdog_pads[] = {
+	IMX8MM_PAD_GPIO1_IO02_WDOG1_WDOG_B  | MUX_PAD_CTRL(WDOG_PAD_CTRL),
+};
+#endif
+
 int board_early_init_f(void)
 {
-	/* TODO: verify that the WDOG is working in the U-BOOT */
+#if defined(CONFIG_IMX_WATCHDOG)
 	struct wdog_regs *wdog = (struct wdog_regs *)WDOG1_BASE_ADDR;
+	imx_iomux_v3_setup_multiple_pads(wdog_pads, ARRAY_SIZE(wdog_pads));
 	set_wdog_reset(wdog);
+#endif
 
 	return 0;
 }
