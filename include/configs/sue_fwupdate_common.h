@@ -171,7 +171,7 @@
             "reset; " \
         "fi;\0" \
 \
-    "kernel_common_args=setenv bootargs console=${console} panic=1 " PARTITIONS " ${optargs}; " \
+    "kernel_common_args=setenv bootargs console=${console} panic=1 ${wdtargs} " PARTITIONS " ${optargs}; " \
         /*"fec.macaddr=${eth_int_addr} ${mtdparts}; " */ \
         "if test \"${secure_board}\" = 1; " \
             "then " \
@@ -238,7 +238,7 @@
             "reset; " \
         "fi;\0" \
 \
-    "kernel_common_args=setenv bootargs console=${console} panic=1 ${mtdparts_arg} ${optargs}; " \
+    "kernel_common_args=setenv bootargs console=${console} panic=1 ${wdtargs} ${mtdparts_arg} ${optargs}; " \
         /*"fec.macaddr=${eth_int_addr} ${mtdparts}; " */ \
         "if test \"${secure_board}\" = 1; " \
             "then " \

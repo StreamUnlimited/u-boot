@@ -114,6 +114,7 @@
 	PARTITIONS "\0" \
 	"carrierboard=kit1955\0" \
 	"console=ttymxc0,115200\0" \
+	"wdtargs=imx2_wdt.timeout=120 watchdog.handle_boot_enabled=0\0" \
 	"bootcmd=run setfitconfig; " SUE_FWUPDATE_BOOTCOMMAND "\0" \
 	"bootcmd_mfg=fastboot 0; reset\0" \
 	"mfg_run=run kernel_common_args; setenv bootargs ${bootargs} rootfstype=ramfs loglevel=5; bootm ${fdt_addr}#default_factory@1\0" \
