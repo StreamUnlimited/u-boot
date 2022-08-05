@@ -5,6 +5,7 @@
 #include <asm/mach-imx/hab.h>
 #include <asm/sections.h>
 #include <common.h>
+#include <image.h>
 
 /*
  * Offset of the current image's security version, relative to the end of U-boot SPL.
@@ -58,6 +59,90 @@ void spl_anti_rollback_check(void)
 		}
 
 		ret = perform_anti_rollback_check("SPL", arb_image_security_version);
+		if (ret) {
+			/* Halt if there was some error */
+			hang();
+		}
+	}
+#endif
+}
+
+/**
+ * Performs anti-rollback check on a single image in FIT.
+ *
+ * @param fit Pointer to the FIT image.
+ * @param name Name of the image, used only in printf.
+ * @param path Path to the image inside the FIT image.
+ * @return 0 if anti-rollback check passed, 1 if there was some error.
+ */
+static int spl_fit_anti_rollback_check_image(void *fit, const char *name, const char *path)
+{
+	int ret;
+	int node_offset;
+	ulong load_address;
+	int data_size;
+
+	anti_rollback_version *arbv;
+	u32 arb_magic;
+	u32 arb_image_security_version;
+
+	/* Find the image's offset inside the FIT image */
+	node_offset = fdt_path_offset(fit, path);
+	if (node_offset < 0) {
+		printf("ERROR: unable to retrieve node for image %s on path %s from FIT\n", name, path);
+		return 1;
+	}
+
+	/* Find the image's load address */
+	ret = fit_image_get_load(fit, node_offset, &load_address);
+	if (ret) {
+		printf("ERROR: unable to retrieve load address for image %s on path %s from FIT\n", name, path);
+		return 1;
+	}
+
+	/* Find the image's data size */
+	ret = fit_image_get_data_size(fit, node_offset, &data_size);
+	if (ret) {
+		printf("ERROR: unable to retrieve data size for image %s on path %s from FIT\n", name, path);
+		return 1;
+	}
+
+	/* Calculate where the anti-rollback version information starts. It's supposed to be at the end. */
+	arbv = (anti_rollback_version *) (load_address + data_size - sizeof(anti_rollback_version));
+
+	/* All fields are stored in big endian, so let's convert them */
+	arb_magic = be32_to_cpu(arbv->magic);
+	arb_image_security_version = be32_to_cpu(arbv->image_security_version);
+
+	if (arb_magic != ANTI_ROLLBACK_MAGIC) {
+		printf("ERROR: image %s has invalid anti-rollback magic field: "
+			"expected 0x%08x, got 0x%08x\n", name, ANTI_ROLLBACK_MAGIC, arb_magic);
+		return 1;
+	}
+
+	return perform_anti_rollback_check(name, arb_image_security_version);
+}
+
+/*
+ * Verifies security version of the FIT image that is loaded by SPL against what is stored in fuses.
+ */
+void sue_spl_fit_anti_rollback_check(void *fit)
+{
+#ifdef CONFIG_SECURE_BOOT
+	int ret;
+
+	if (imx_hab_is_enabled()) {
+		printf("Performing anti-rollback check on FIT image loaded from SPL\n");
+
+		/* Check Arm Trusted Firmware */
+		ret = spl_fit_anti_rollback_check_image(fit, "ATF", "/images/atf@1");
+		if (ret) {
+			/* Halt if there was some error */
+			hang();
+		}
+
+		/* Check OP-TEE */
+		ret = spl_fit_anti_rollback_check_image(fit, "OP-TEE", "/images/tee@1");
 		if (ret) {
 			/* Halt if there was some error */
 			hang();

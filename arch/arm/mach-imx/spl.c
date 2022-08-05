@@ -17,6 +17,9 @@
 #include <asm/mach-imx/boot_mode.h>
 #include <g_dnl.h>
 
+/* SUE customization */
+#include "../../../board/streamunlimited/stream195x/spl_anti_rollback.h"
+
 DECLARE_GLOBAL_DATA_PTR;
 
 #if defined(CONFIG_MX6)
@@ -300,6 +303,9 @@ void board_spl_fit_post_load(ulong load_addr, size_t length)
 		puts("spl: ERROR:  image authentication unsuccessful\n");
 		hang();
 	}
+
+	/* SUE customization */
+	sue_spl_fit_anti_rollback_check((void *) load_addr);
 }
 
 void* board_spl_fit_buffer_addr(ulong fit_size, int bl_len)
