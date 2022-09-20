@@ -534,7 +534,7 @@ int board_axp313_init(void)
 	ret |= axp313_set_dcdc1(1100);
 
 	/* Set VDD_EE to 0.95V */
-	ret |= axp313_set_dcdc2(1050);
+	ret |= axp313_set_dcdc2(950);
 
 	/* Set ALDO to 3.1V */
 	ret |= axp313_set_aldo1(AXP313_ALDO_3V3);
