@@ -317,7 +317,6 @@ menu "Android Verified Boot"
 
 config LIBAVB
 	bool "Android Verified Boot 2.0 support"
-	depends on ANDROID_BOOT_IMAGE
 	default n
 	help
 	  This enables support of Android Verified Boot 2.0 which can be used

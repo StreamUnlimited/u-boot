@@ -101,6 +101,7 @@ static void set_handler(unsigned long offset, void *addr, unsigned long size)
 
 void trap_init(ulong reloc_addr)
 {
+#ifndef CONFIG_CPU_TAROKO
 	unsigned long ebase = gd->irq_sp;
 
 	set_handler(0x180, &except_vec3_generic, 0x80);
@@ -109,6 +110,7 @@ void trap_init(ulong reloc_addr)
 	saved_ebase = read_c0_ebase() & 0xfffff000;
 
 	write_c0_ebase(ebase);
+#endif
 	clear_c0_status(ST0_BEV);
 	execution_hazard_barrier();
 }

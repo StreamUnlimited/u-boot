@@ -16,8 +16,9 @@
 #include <mtd.h>
 #include <dm/devres.h>
 #include <linux/err.h>
-
 #include <linux/ctype.h>
+
+#define MISC_OPTION_CMD_SIZE	32
 
 static struct mtd_info *get_mtd_by_name(const char *name)
 {
@@ -28,7 +29,7 @@ static struct mtd_info *get_mtd_by_name(const char *name)
 	mtd = get_mtd_device_nm(name);
 	if (IS_ERR_OR_NULL(mtd))
 		printf("MTD device %s not found, ret %ld\n", name,
-		       PTR_ERR(mtd));
+			   PTR_ERR(mtd));
 
 	return mtd;
 }
@@ -54,24 +55,26 @@ static void mtd_dump_buf(const u8 *buf, uint len, uint offset)
 {
 	int i, j;
 
-	for (i = 0; i < len; ) {
+	for (i = 0; i < len;) {
 		printf("0x%08x:\t", offset + i);
-		for (j = 0; j < 8; j++)
+		for (j = 0; j < 8; j++) {
 			printf("%02x ", buf[i + j]);
+		}
 		printf(" ");
 		i += 8;
-		for (j = 0; j < 8; j++)
+		for (j = 0; j < 8; j++) {
 			printf("%02x ", buf[i + j]);
+		}
 		printf("\n");
 		i += 8;
 	}
 }
 
 static void mtd_dump_device_buf(struct mtd_info *mtd, u64 start_off,
-				const u8 *buf, u64 len, bool woob)
+								const u8 *buf, u64 len, bool woob)
 {
 	bool has_pages = mtd->type == MTD_NANDFLASH ||
-		mtd->type == MTD_MLCNANDFLASH;
+					 mtd->type == MTD_MLCNANDFLASH;
 	int npages = mtd_len_to_pages(mtd, len);
 	uint page;
 
@@ -80,22 +83,22 @@ static void mtd_dump_device_buf(struct mtd_info *mtd, u64 start_off,
 			u64 data_off = page * mtd->writesize;
 
 			printf("\nDump %d data bytes from 0x%08llx:\n",
-			       mtd->writesize, start_off + data_off);
+				   mtd->writesize, start_off + data_off);
 			mtd_dump_buf(&buf[data_off],
-				     mtd->writesize, start_off + data_off);
+						 mtd->writesize, start_off + data_off);
 
 			if (woob) {
 				u64 oob_off = page * mtd->oobsize;
 
 				printf("Dump %d OOB bytes from page at 0x%08llx:\n",
-				       mtd->oobsize, start_off + data_off);
+					   mtd->oobsize, start_off + data_off);
 				mtd_dump_buf(&buf[len + oob_off],
-					     mtd->oobsize, 0);
+							 mtd->oobsize, 0);
 			}
 		}
 	} else {
 		printf("\nDump %lld data bytes from 0x%llx:\n",
-		       len, start_off);
+			   len, start_off);
 		mtd_dump_buf(buf, len, start_off);
 	}
 }
@@ -106,10 +109,11 @@ static void mtd_show_parts(struct mtd_info *mtd, int level)
 	int i;
 
 	list_for_each_entry(part, &mtd->partitions, node) {
-		for (i = 0; i < level; i++)
+		for (i = 0; i < level; i++) {
 			printf("\t");
+		}
 		printf("  - 0x%012llx-0x%012llx : \"%s\"\n",
-		       part->offset, part->offset + part->size, part->name);
+			   part->offset, part->offset + part->size, part->name);
 
 		mtd_show_parts(part, level + 1);
 	}
@@ -169,11 +173,11 @@ static void mtd_show_device(struct mtd_info *mtd)
 		printf("  - ECC strength: %u bits\n", mtd->ecc_strength);
 		printf("  - ECC step size: %u bytes\n", mtd->ecc_step_size);
 		printf("  - bitflip threshold: %u bits\n",
-		       mtd->bitflip_threshold);
+			   mtd->bitflip_threshold);
 	}
 
 	printf("  - 0x%012llx-0x%012llx : \"%s\"\n",
-	       mtd->offset, mtd->offset + mtd->size, mtd->name);
+		   mtd->offset, mtd->offset + mtd->size, mtd->name);
 
 	/* MTD partitions, if any */
 	mtd_show_parts(mtd, 1);
@@ -185,18 +189,20 @@ static bool mtd_oob_write_is_empty(struct mtd_oob_ops *op)
 	int i;
 
 	for (i = 0; i < op->len; i++)
-		if (op->datbuf[i] != 0xff)
+		if (op->datbuf[i] != 0xff) {
 			return false;
+		}
 
 	for (i = 0; i < op->ooblen; i++)
-		if (op->oobbuf[i] != 0xff)
+		if (op->oobbuf[i] != 0xff) {
 			return false;
+		}
 
 	return true;
 }
 
 static int do_mtd_list(struct cmd_tbl *cmdtp, int flag, int argc,
-		       char *const argv[])
+					   char *const argv[])
 {
 	struct mtd_info *mtd;
 	int dev_nb = 0;
@@ -206,8 +212,9 @@ static int do_mtd_list(struct cmd_tbl *cmdtp, int flag, int argc,
 
 	printf("List of MTD devices:\n");
 	mtd_for_each_device(mtd) {
-		if (!mtd_is_partition(mtd))
+		if (!mtd_is_partition(mtd)) {
 			mtd_show_device(mtd);
+		}
 
 		dev_nb++;
 	}
@@ -221,8 +228,8 @@ static int do_mtd_list(struct cmd_tbl *cmdtp, int flag, int argc,
 }
 
 static int mtd_special_write_oob(struct mtd_info *mtd, u64 off,
-				 struct mtd_oob_ops *io_op,
-				 bool write_empty_pages, bool woob)
+								 struct mtd_oob_ops *io_op,
+								 bool write_empty_pages, bool woob)
 {
 	int ret = 0;
 
@@ -240,8 +247,72 @@ static int mtd_special_write_oob(struct mtd_info *mtd, u64 off,
 	return ret;
 }
 
+static void mtd_read_to_buf(struct mtd_info *mtd, u8 *buf, u64 len)
+{
+	bool read = 0, raw = 0, woob = 0, write_empty_pages = 0, has_pages = false;
+	u64 start_off = 0, off = 0, remaining = 0;
+	struct mtd_oob_ops io_op = {};
+	uint npages = 0;
+	u32 oob_len = 0;
+	int ret = CMD_RET_SUCCESS;
+
+	if (mtd->type == MTD_NANDFLASH || mtd->type == MTD_MLCNANDFLASH) {
+		has_pages = true;
+	}
+
+	remaining = len;
+	npages = mtd_len_to_pages(mtd, len);
+	oob_len = 0;
+	woob = 0;
+	start_off = 0;
+
+	if (has_pages)
+		printf("%s %lld byte(s) (%d page(s)) at offset 0x%08llx%s%s%s\n",
+			   read ? "Reading" : "Writing", len, npages, start_off,
+			   raw ? " [raw]" : "", woob ? " [oob]" : "",
+			   !read && write_empty_pages ? " [dontskipff]" : "");
+	else
+		printf("%s %lld byte(s) at offset 0x%08llx\n",
+			   read ? "Reading" : "Writing", len, start_off);
+
+	io_op.mode = MTD_OPS_AUTO_OOB;
+	io_op.len = has_pages ? mtd->writesize : len;
+	io_op.ooblen = 0;
+	io_op.datbuf = buf;
+	io_op.oobbuf = woob ? &buf[len] : NULL;
+
+	/* Search for the first good block after the given offset */
+	off = start_off;
+
+	while (mtd_block_isbad(mtd, off)) {
+		off += mtd->erasesize;
+	}
+
+	/* Loop over the pages to do the actual read/write */
+	while (remaining) {
+		/* Skip the block if it is bad */
+		if (mtd_is_aligned_with_block_size(mtd, off) &&
+			mtd_block_isbad(mtd, off)) {
+			off += mtd->erasesize;
+			continue;
+		}
+
+		ret = mtd_read_oob(mtd, off, &io_op);
+
+		if (ret) {
+			printf("Failure while reading at offset 0x%llx\n", off);
+			break;
+		}
+
+		off += io_op.retlen;
+		remaining -= io_op.retlen;
+		io_op.datbuf += io_op.retlen;
+		io_op.oobbuf += io_op.oobretlen;
+	}
+}
+
 static int do_mtd_io(struct cmd_tbl *cmdtp, int flag, int argc,
-		     char *const argv[])
+					 char *const argv[])
 {
 	bool dump, read, raw, woob, write_empty_pages, has_pages = false;
 	u64 start_off, off, len, remaining, default_len;
@@ -253,15 +324,18 @@ static int do_mtd_io(struct cmd_tbl *cmdtp, int flag, int argc,
 	u8 *buf;
 	int ret;
 
-	if (argc < 2)
+	if (argc < 2) {
 		return CMD_RET_USAGE;
+	}
 
 	mtd = get_mtd_by_name(argv[1]);
-	if (IS_ERR_OR_NULL(mtd))
+	if (IS_ERR_OR_NULL(mtd)) {
 		return CMD_RET_FAILURE;
+	}
 
-	if (mtd->type == MTD_NANDFLASH || mtd->type == MTD_MLCNANDFLASH)
+	if (mtd->type == MTD_NANDFLASH || mtd->type == MTD_MLCNANDFLASH) {
 		has_pages = true;
+	}
 
 	dump = !strncmp(cmd, "dump", 4);
 	read = dump || !strncmp(cmd, "read", 4);
@@ -286,7 +360,7 @@ static int do_mtd_io(struct cmd_tbl *cmdtp, int flag, int argc,
 	start_off = argc > 0 ? simple_strtoul(argv[0], NULL, 16) : 0;
 	if (!mtd_is_aligned_with_min_io_size(mtd, start_off)) {
 		printf("Offset not aligned with a page (0x%x)\n",
-		       mtd->writesize);
+			   mtd->writesize);
 		ret = CMD_RET_FAILURE;
 		goto out_put_mtd;
 	}
@@ -296,17 +370,18 @@ static int do_mtd_io(struct cmd_tbl *cmdtp, int flag, int argc,
 	if (!mtd_is_aligned_with_min_io_size(mtd, len)) {
 		len = round_up(len, mtd->writesize);
 		printf("Size not on a page boundary (0x%x), rounding to 0x%llx\n",
-		       mtd->writesize, len);
+			   mtd->writesize, len);
 	}
 
 	remaining = len;
 	npages = mtd_len_to_pages(mtd, len);
 	oob_len = woob ? npages * mtd->oobsize : 0;
 
-	if (dump)
+	if (dump) {
 		buf = kmalloc(len + oob_len, GFP_KERNEL);
-	else
+	} else {
 		buf = map_sysmem(user_addr, 0);
+	}
 
 	if (!buf) {
 		printf("Could not map/allocate the user buffer\n");
@@ -316,12 +391,12 @@ static int do_mtd_io(struct cmd_tbl *cmdtp, int flag, int argc,
 
 	if (has_pages)
 		printf("%s %lld byte(s) (%d page(s)) at offset 0x%08llx%s%s%s\n",
-		       read ? "Reading" : "Writing", len, npages, start_off,
-		       raw ? " [raw]" : "", woob ? " [oob]" : "",
-		       !read && write_empty_pages ? " [dontskipff]" : "");
+			   read ? "Reading" : "Writing", len, npages, start_off,
+			   raw ? " [raw]" : "", woob ? " [oob]" : "",
+			   !read && write_empty_pages ? " [dontskipff]" : "");
 	else
 		printf("%s %lld byte(s) at offset 0x%08llx\n",
-		       read ? "Reading" : "Writing", len, start_off);
+			   read ? "Reading" : "Writing", len, start_off);
 
 	io_op.mode = raw ? MTD_OPS_RAW : MTD_OPS_AUTO_OOB;
 	io_op.len = has_pages ? mtd->writesize : len;
@@ -331,27 +406,28 @@ static int do_mtd_io(struct cmd_tbl *cmdtp, int flag, int argc,
 
 	/* Search for the first good block after the given offset */
 	off = start_off;
-	while (mtd_block_isbad(mtd, off))
+	while (mtd_block_isbad(mtd, off)) {
 		off += mtd->erasesize;
+	}
 
 	/* Loop over the pages to do the actual read/write */
 	while (remaining) {
 		/* Skip the block if it is bad */
 		if (mtd_is_aligned_with_block_size(mtd, off) &&
-		    mtd_block_isbad(mtd, off)) {
+			mtd_block_isbad(mtd, off)) {
 			off += mtd->erasesize;
 			continue;
 		}
 
-		if (read)
+		if (read) {
 			ret = mtd_read_oob(mtd, off, &io_op);
-		else
+		} else
 			ret = mtd_special_write_oob(mtd, off, &io_op,
-						    write_empty_pages, woob);
+										write_empty_pages, woob);
 
 		if (ret) {
 			printf("Failure while %s at offset 0x%llx\n",
-			       read ? "reading" : "writing", off);
+				   read ? "reading" : "writing", off);
 			break;
 		}
 
@@ -361,17 +437,19 @@ static int do_mtd_io(struct cmd_tbl *cmdtp, int flag, int argc,
 		io_op.oobbuf += io_op.oobretlen;
 	}
 
-	if (!ret && dump)
+	if (!ret && dump) {
 		mtd_dump_device_buf(mtd, start_off, buf, len, woob);
+	}
 
-	if (dump)
+	if (dump) {
 		kfree(buf);
-	else
+	} else {
 		unmap_sysmem(buf);
+	}
 
 	if (ret) {
 		printf("%s on %s failed with error %d\n",
-		       read ? "Read" : "Write", mtd->name, ret);
+			   read ? "Read" : "Write", mtd->name, ret);
 		ret = CMD_RET_FAILURE;
 	} else {
 		ret = CMD_RET_SUCCESS;
@@ -384,7 +462,7 @@ out_put_mtd:
 }
 
 static int do_mtd_erase(struct cmd_tbl *cmdtp, int flag, int argc,
-			char *const argv[])
+						char *const argv[])
 {
 	struct erase_info erase_op = {};
 	struct mtd_info *mtd;
@@ -392,12 +470,14 @@ static int do_mtd_erase(struct cmd_tbl *cmdtp, int flag, int argc,
 	bool scrub;
 	int ret = 0;
 
-	if (argc < 2)
+	if (argc < 2) {
 		return CMD_RET_USAGE;
+	}
 
 	mtd = get_mtd_by_name(argv[1]);
-	if (IS_ERR_OR_NULL(mtd))
+	if (IS_ERR_OR_NULL(mtd)) {
 		return CMD_RET_FAILURE;
+	}
 
 	scrub = strstr(argv[0], ".dontskipbad");
 
@@ -409,20 +489,20 @@ static int do_mtd_erase(struct cmd_tbl *cmdtp, int flag, int argc,
 
 	if (!mtd_is_aligned_with_block_size(mtd, off)) {
 		printf("Offset not aligned with a block (0x%x)\n",
-		       mtd->erasesize);
+			   mtd->erasesize);
 		ret = CMD_RET_FAILURE;
 		goto out_put_mtd;
 	}
 
 	if (!mtd_is_aligned_with_block_size(mtd, len)) {
 		printf("Size not a multiple of a block (0x%x)\n",
-		       mtd->erasesize);
+			   mtd->erasesize);
 		ret = CMD_RET_FAILURE;
 		goto out_put_mtd;
 	}
 
 	printf("Erasing 0x%08llx ... 0x%08llx (%d eraseblock(s))\n",
-	       off, off + len - 1, mtd_div_by_eb(len, mtd));
+		   off, off + len - 1, mtd_div_by_eb(len, mtd));
 
 	erase_op.mtd = mtd;
 	erase_op.addr = off;
@@ -434,20 +514,22 @@ static int do_mtd_erase(struct cmd_tbl *cmdtp, int flag, int argc,
 
 		if (ret) {
 			/* Abort if its not a bad block error */
-			if (ret != -EIO)
+			if (ret != -EIO) {
 				break;
+			}
 			printf("Skipping bad block at 0x%08llx\n",
-			       erase_op.addr);
+				   erase_op.addr);
 		}
 
 		len -= mtd->erasesize;
 		erase_op.addr += mtd->erasesize;
 	}
 
-	if (ret && ret != -EIO)
+	if (ret && ret != -EIO) {
 		ret = CMD_RET_FAILURE;
-	else
+	} else {
 		ret = CMD_RET_SUCCESS;
+	}
 
 out_put_mtd:
 	put_mtd_device(mtd);
@@ -455,18 +537,174 @@ out_put_mtd:
 	return ret;
 }
 
+#if IS_ENABLED(CONFIG_VERIFIED_BOOT)
+static void mtd_avb_reject_booting(int argc, char *const argv[])
+{
+	int i = 0;
+	while(1) {
+		i++;
+		if (i >= 0xFFFFFF) {
+			i = 0;
+			printf("Endless loop ongoing: secure boot verify failed.");
+		}
+	}
+}
+
+static int do_mtd_verified_boot(int argc, char *const argv[])
+{
+	u64 len;
+	u64 cert_buf_len;
+	struct mtd_info *mtd;
+	struct mtd_info *mtd_pkhash;
+	u8 *buf;
+	u8 *cert_buf;
+	int ret = CMD_RET_SUCCESS;
+	extern int realtek_linux_verified_boot(
+		unsigned long ddr_kernel_addr, unsigned long ddr_dtb_addr,
+		const u8* vbmeta_buf, u64 vbmeta_len,
+		const u8* cert_buf, u64 cert_buf_len);
+
+	mtd = get_mtd_by_name(argv[3]);
+	if (IS_ERR_OR_NULL(mtd)) {
+		return CMD_RET_FAILURE;
+	}
+	len = mtd->size;
+	buf = kmalloc(len, GFP_KERNEL);
+	if (!buf) {
+		printf("Could not map/allocate the user buffer\n");
+		ret = CMD_RET_FAILURE;
+		goto out_put_mtd;
+	}
+	mtd_read_to_buf(mtd, buf, len);
+
+	mtd_pkhash = get_mtd_by_name("cert-bin");
+	cert_buf_len = mtd_pkhash->size;
+	cert_buf = kmalloc(cert_buf_len, GFP_KERNEL);
+	if (!cert_buf) {
+		printf("Could not map/allocate the user buffer\n");
+		ret = CMD_RET_FAILURE;
+		goto out_put_mtd_pkhash;
+	}
+	mtd_read_to_buf(mtd_pkhash, cert_buf, cert_buf_len);
+
+	ret = realtek_linux_verified_boot(simple_strtoul(argv[1], NULL, 16), simple_strtoul(argv[2], NULL, 16), buf, len, cert_buf, cert_buf_len);
+
+	kfree(cert_buf);
+out_put_mtd_pkhash:
+	put_mtd_device(mtd_pkhash);
+	kfree(buf);
+out_put_mtd:
+	put_mtd_device(mtd);
+	return ret;
+}
+#endif // IS_ENABLED(CONFIG_VERIFIED_BOOT)
+
+static int do_mtd_io_option(
+	struct cmd_tbl *cmdtp, int flag, int argc,
+	char *const argv[])
+{
+	u64 len;
+	struct mtd_info *mtd;
+	u8 *buf;
+	int ret = CMD_RET_SUCCESS;
+	u8 cmd_misc[32];
+	char opt[32] = "boot-recovery";
+	char *argv_read[5] = {"read", "0xFFFFFFFF", "0xFFFFFFFF", "0xFFFFFFFF", "0xFFFFFFFF"};
+
+	if (argc < 6) {
+		return CMD_RET_USAGE;
+	}
+
+	mtd = get_mtd_by_name("misc");
+	if (IS_ERR_OR_NULL(mtd)) {
+		return CMD_RET_FAILURE;
+	}
+	len = mtd->size ? mtd->size : MISC_OPTION_CMD_SIZE;
+
+	buf = kmalloc(len, GFP_KERNEL);
+	if (!buf) {
+		printf("Could not map/allocate the user buffer\n");
+		ret = CMD_RET_FAILURE;
+		goto out_put_mtd;
+	}
+
+	mtd_read_to_buf(mtd, buf, len);
+	memcpy(cmd_misc, buf, MISC_OPTION_CMD_SIZE);
+
+	if (memcmp(cmd_misc, opt, MISC_OPTION_CMD_SIZE) == 0) {
+		/* Boot Recovery. */
+		printf("Prepare to boot recovery image now.\n");
+		argv_read[1] = "r-uImage";	// MTD name.
+		argv_read[2] = argv[2];		// DDR address.
+		argv_read[3] = "0";			// Start byte in mtd block
+		argv_read[4] = argv[6];		// Image size.
+		do_mtd_io(NULL, NULL, 5, argv_read);
+		argv_read[1] = "r-dtb";
+		argv_read[2] = argv[3];
+		argv_read[3] = "0";
+		argv_read[4] = argv[7];
+		do_mtd_io(NULL, NULL, 5, argv_read);
+#if IS_ENABLED(CONFIG_VERIFIED_BOOT)
+		argv_read[1] = argv[2];		// DDR kernel address
+		argv_read[2] = argv[3];		// DDR dtb address
+		argv_read[3] = "r-vbmeta";
+		argv_read[4] = "-";
+		if (do_mtd_verified_boot(5, argv_read) != CMD_RET_SUCCESS){
+			printf("linux verified boot: fail!\n");
+			printf("boot will be rejected!\n");
+			mtd_avb_reject_booting(5, argv_read);
+		} else {
+			printf("linux verified boot: success!\n");
+		}
+#endif // IS_ENABLED(CONFIG_VERIFIED_BOOT)
+	} else {
+		/* Boot Normal. */
+		printf("Prepare to boot normal image now.\n");
+		argv_read[1] = "dtb";
+		argv_read[2] = argv[3];
+		argv_read[3] = "0";
+		argv_read[4] = argv[5];
+		do_mtd_io(NULL, NULL, 5, argv_read);
+		argv_read[1] = "uImage";
+		argv_read[2] = argv[2];
+		argv_read[3] = "0";
+		argv_read[4] = argv[4];
+		do_mtd_io(NULL, NULL, 5, argv_read);
+#if IS_ENABLED(CONFIG_VERIFIED_BOOT)
+		argv_read[1] = argv[2];		// DDR kernel address
+		argv_read[2] = argv[3];		// DDR dtb address
+		argv_read[3] = "vbmeta";
+		argv_read[4] = "-";
+		if (do_mtd_verified_boot(5, argv_read) != CMD_RET_SUCCESS){
+			printf("linux verified boot: fail!\n");
+			printf("boot will be rejected!\n");
+			mtd_avb_reject_booting(5, argv_read);
+		} else {
+			printf("linux verified boot: success!\n");
+		}
+#endif // IS_ENABLED(CONFIG_VERIFIED_BOOT)
+	}
+
+	kfree(buf);
+out_put_mtd:
+	put_mtd_device(mtd);
+	return ret;
+}
+
 static int do_mtd_bad(struct cmd_tbl *cmdtp, int flag, int argc,
-		      char *const argv[])
+					  char *const argv[])
 {
 	struct mtd_info *mtd;
 	loff_t off;
 
-	if (argc < 2)
+	if (argc < 2) {
 		return CMD_RET_USAGE;
+	}
 
 	mtd = get_mtd_by_name(argv[1]);
-	if (IS_ERR_OR_NULL(mtd))
+	if (IS_ERR_OR_NULL(mtd)) {
 		return CMD_RET_FAILURE;
+	}
 
 	if (!mtd_can_have_bb(mtd)) {
 		printf("Only NAND-based devices can have bad blocks\n");
@@ -475,8 +713,9 @@ static int do_mtd_bad(struct cmd_tbl *cmdtp, int flag, int argc,
 
 	printf("MTD device %s bad blocks list:\n", mtd->name);
 	for (off = 0; off < mtd->size; off += mtd->erasesize) {
-		if (mtd_block_isbad(mtd, off))
+		if (mtd_block_isbad(mtd, off)) {
 			printf("\t0x%08llx\n", off);
+		}
 	}
 
 out_put_mtd:
@@ -487,7 +726,7 @@ out_put_mtd:
 
 #ifdef CONFIG_AUTO_COMPLETE
 static int mtd_name_complete(int argc, char *const argv[], char last_char,
-			     int maxv, char *cmdv[])
+							 int maxv, char *cmdv[])
 {
 	int len = 0, n_found = 0;
 	struct mtd_info *mtd;
@@ -496,17 +735,20 @@ static int mtd_name_complete(int argc, char *const argv[], char last_char,
 	argv++;
 
 	if (argc > 1 ||
-	    (argc == 1 && (last_char == '\0' || isblank(last_char))))
+		(argc == 1 && (last_char == '\0' || isblank(last_char)))) {
 		return 0;
+	}
 
-	if (argc)
+	if (argc) {
 		len = strlen(argv[0]);
+	}
 
 	mtd_for_each_device(mtd) {
 		if (argc &&
-		    (len > strlen(mtd->name) ||
-		     strncmp(argv[0], mtd->name, len)))
+			(len > strlen(mtd->name) ||
+			 strncmp(argv[0], mtd->name, len))) {
 			continue;
+		}
 
 		if (n_found >= maxv - 2) {
 			cmdv[n_found++] = "...";
@@ -547,15 +789,12 @@ static char mtd_help_text[] =
 	"The .dontskipff option forces writing empty pages, don't use it if unsure.\n";
 #endif
 
-U_BOOT_CMD_WITH_SUBCMDS(mtd, "MTD utils", mtd_help_text,
-		U_BOOT_SUBCMD_MKENT(list, 1, 1, do_mtd_list),
-		U_BOOT_SUBCMD_MKENT_COMPLETE(read, 5, 0, do_mtd_io,
-					     mtd_name_complete),
-		U_BOOT_SUBCMD_MKENT_COMPLETE(write, 5, 0, do_mtd_io,
-					     mtd_name_complete),
-		U_BOOT_SUBCMD_MKENT_COMPLETE(dump, 4, 0, do_mtd_io,
-					     mtd_name_complete),
-		U_BOOT_SUBCMD_MKENT_COMPLETE(erase, 4, 0, do_mtd_erase,
-					     mtd_name_complete),
-		U_BOOT_SUBCMD_MKENT_COMPLETE(bad, 2, 1, do_mtd_bad,
-					     mtd_name_complete));
+U_BOOT_CMD_WITH_SUBCMDS(
+	mtd, "MTD utils", mtd_help_text,
+	U_BOOT_SUBCMD_MKENT(list, 1, 1, do_mtd_list),
+	U_BOOT_SUBCMD_MKENT_COMPLETE(read, 5, 0, do_mtd_io, mtd_name_complete),
+	U_BOOT_SUBCMD_MKENT_COMPLETE(opt_read, 9, 0, do_mtd_io_option, mtd_name_complete),
+	U_BOOT_SUBCMD_MKENT_COMPLETE(write, 5, 0, do_mtd_io, mtd_name_complete),
+	U_BOOT_SUBCMD_MKENT_COMPLETE(dump, 4, 0, do_mtd_io, mtd_name_complete),
+	U_BOOT_SUBCMD_MKENT_COMPLETE(erase, 4, 0, do_mtd_erase, mtd_name_complete),
+	U_BOOT_SUBCMD_MKENT_COMPLETE(bad, 2, 1, do_mtd_bad, mtd_name_complete));

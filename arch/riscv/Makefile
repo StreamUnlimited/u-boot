@@ -33,5 +33,7 @@ CFLAGS_EFI		+= $(ARCH_FLAGS)
 head-y := arch/riscv/cpu/start.o
 
 libs-y += arch/riscv/cpu/
+ifneq ($(CONFIG_FORMOSA),y)
 libs-y += arch/riscv/cpu/$(CPU)/
+endif
 libs-y += arch/riscv/lib/

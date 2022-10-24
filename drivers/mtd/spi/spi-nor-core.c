@@ -2305,6 +2305,7 @@ static int spi_nor_select_read(struct spi_nor *nor,
 		return -EINVAL;
 
 	cmd = spi_nor_hwcaps_read2cmd(BIT(best_match));
+
 	if (cmd < 0)
 		return -EINVAL;
 
@@ -2337,6 +2338,7 @@ static int spi_nor_select_pp(struct spi_nor *nor,
 		return -EINVAL;
 
 	cmd = spi_nor_hwcaps_pp2cmd(BIT(best_match));
+
 	if (cmd < 0)
 		return -EINVAL;
 

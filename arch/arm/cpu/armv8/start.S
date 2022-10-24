@@ -119,6 +119,7 @@ pie_fixup_done:
 1:	set_vbar	vbar_el1, x0
 	mov	x0, #3 << 20
 	msr	cpacr_el1, x0			/* Enable FP/SIMD */
+        isb
 0:
 
 	/*

@@ -318,6 +318,14 @@ endmenu		# General setup
 
 menu "Boot images"
 
+config VERIFIED_BOOT
+	bool "Enable Linux verified boot"
+	select LIBAVB
+	select AMEBA_OTP
+	help
+	  This enables support for booting secure images which is porting from
+	  the android verified boot 2.0.
+
 config ANDROID_BOOT_IMAGE
 	bool "Enable support for Android Boot Images"
 	default y if FASTBOOT
@@ -618,11 +626,120 @@ config SYS_CLK_FREQ
 
 config ARCH_FIXUP_FDT_MEMORY
 	bool "Enable arch_fixup_memory_banks() call"
-	default y
+	default n
 	help
 	  Enable FDT memory map syncup before OS boot. This feature can be
 	  used for booting OS with different memory setup where the part of
 	  the memory location should be used for different purpose.
+
+config KERNEL_ADDR
+	hex "Load kernel Address"
+	depends on !FIT
+	default 0x82000000
+	help
+	  Load uImage (image with U-Boot header) to the setting address.
+
+config RAMDISK_ADDR
+	hex "Load Ramdisk Address"
+	depends on ARM || !MIPS_BOOT_FDT || RISCV
+	depends on !FIT
+	default 0x00 if CMD_SF
+	default 0x83000000
+	help
+	  Load initramfs.gz.uImage (initramfs.gz with U-Boot header) to the
+	  setting address.
+
+config FDT_ADDR
+	hex "Load Flat Device-Tree Address"
+	depends on MIPS_BOOT_FDT || ARM || RISCV
+	depends on !FIT
+	default 0x81f00000
+	help
+	  Load flat device-tree blob to the setting address.
+
+config FIT_ADDR
+	hex "Load Flat Image Tree(FIT) Address"
+	depends on MIPS_BOOT_FDT || ARM || RISCV
+	depends on FIT
+	default 0x82000000
+	help
+	  Load FIT to the setting address.
+
+config IMG_FLASH_ADDR
+	hex "Read Image Flash Address"
+	depends on MIPS_BOOT_FDT || ARM || RISCV
+	depends on CMD_SF
+	default 0xC00000
+	help
+	  Read Image data flash address.
+
+config IMG_FLASH_SIZE
+	hex "Read Image Flash Size"
+	depends on MIPS_BOOT_FDT || ARM || RISCV
+	depends on CMD_SF || CMD_MTD
+	default 0x600000
+	help
+	  Read Image data flash size.
+
+config FDT_FLASH_ADDR
+	hex "Read FDT Flash Address"
+	depends on MIPS_BOOT_FDT || ARM || RISCV
+	depends on CMD_SF
+	default 0xB80000
+	help
+	  Read FDT data flash address.
+
+config FDT_FLASH_SIZE
+	hex "Read FDT Flash Size"
+	depends on MIPS_BOOT_FDT || ARM || RISCV
+	depends on CMD_SF || CMD_MTD
+	default 0xC0000
+	help
+	  Read FDT data flash size.
+
+config RECOVERY_IMG_FLASH_ADDR
+	hex "Read Recovery Image Flash Address"
+	depends on MIPS_BOOT_FDT || ARM || RISCV
+	depends on CMD_SF
+	default 0x6C0000
+	help
+	  Read Recovery Image data flash address.
+
+config RECOVERY_IMG_FLASH_SIZE
+	hex "Read Recovery Image Flash Size"
+	depends on MIPS_BOOT_FDT || ARM || RISCV
+	depends on CMD_SF || CMD_MTD
+	default 0x200000
+	help
+	  Read Recovery Image data flash size.
+
+config RECOVERY_FDT_FLASH_ADDR
+	hex "Read Recovery FDT Flash Address"
+	depends on MIPS_BOOT_FDT || ARM || RISCV
+	depends on CMD_SF
+	default 0x680000
+	help
+	  Read Recovery FDT data flash address.
+
+config RECOVERY_FDT_FLASH_SIZE
+	hex "Read Recovery FDT Flash Size"
+	depends on MIPS_BOOT_FDT || ARM || RISCV
+	depends on CMD_SF || CMD_MTD
+	default 0x40000
+	help
+	  Read Recovery FDT data flash size.
+
+config BOOT_OPTION_MISC_FLASH_ADDR
+	hex "Read Boot Option Flash Address"
+	default 0x620000
+	help
+	  Read Boot Option data flash address.
+
+config BOOT_OPTION_MISC_FLASH_SIZE
+	hex "Read Boot Option Flash Size"
+	default 0x60000
+	help
+	  Read Boot Option data flash size.
 
 endmenu		# Boot images
 

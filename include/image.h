@@ -16,7 +16,9 @@
 #define __IMAGE_H__
 
 #include "compiler.h"
+#ifndef __APPLE__
 #include <asm/byteorder.h>
+#endif
 #include <stdbool.h>
 
 /* Define this to avoid #ifdefs later on */

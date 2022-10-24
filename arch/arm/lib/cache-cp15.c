@@ -309,7 +309,26 @@ void dcache_enable(void)
 
 void dcache_disable(void)
 {
+	u32 reg;
+
+	reg = get_cr();
+
+	/* if dcache is not enabled, there is no need to disable */
+	if (!(reg & CR_C))
+		return;
+
+#ifdef CONFIG_CPU_V8
+	__asm_flush_aarch32_dcache_all();
+	asm volatile(
+		"mvn	r4, #5\n\t"
+		"and	%0, %0, r4\n\t"
+		"mcr	p15, 0, %0, c1, c0, 0 @ set CR"
+	  : : "r" (reg) : "r4", "cc");
+	isb();
+	dsb();
+#else
 	cache_disable(CR_C);
+#endif
 }
 
 int dcache_status(void)

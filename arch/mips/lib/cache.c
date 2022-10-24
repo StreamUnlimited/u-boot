@@ -29,15 +29,15 @@ static void probe_l2(void)
 
 	conf2 = read_c0_config2();
 
-	if (__mips_isa_rev >= 6) {
-		l2c = conf2 & MIPS_CONF_M;
-		if (l2c)
-			l2c = read_c0_config3() & MIPS_CONF_M;
-		if (l2c)
-			l2c = read_c0_config4() & MIPS_CONF_M;
-		if (l2c)
-			l2c = read_c0_config5() & MIPS_CONF5_L2C;
-	}
+#if __mips_isa_rev >= 6
+	l2c = conf2 & MIPS_CONF_M;
+	if (l2c)
+		l2c = read_c0_config3() & MIPS_CONF_M;
+	if (l2c)
+		l2c = read_c0_config4() & MIPS_CONF_M;
+	if (l2c)
+		l2c = read_c0_config5() & MIPS_CONF5_L2C;
+#endif
 
 	if (l2c && config_enabled(CONFIG_MIPS_CM)) {
 		gd->arch.l2_line_size = mips_cm_l2_line_size();

@@ -1,0 +1,93 @@
+#
+# Realtek Semiconductor Corp.
+#
+# Formosa Configuration
+#
+# Tony Wu (tonywu@realtek.com)
+# Dec. 07, 2008
+#
+
+#
+# CPU
+#
+config CPU_MIPS4K
+	bool
+	default y if SOC_CPU_MIPS4K
+
+config CPU_MIPS24K
+	bool
+	default y if SOC_CPU_MIPS24K
+
+config CPU_MIPS34K
+	bool
+	default y if SOC_CPU_MIPS34K
+	select MIPS_MT if SOC_ENABLE_MT
+
+config CPU_MIPS74K
+	bool
+	default y if SOC_CPU_MIPS74K
+	select CPU_HAS_TLS
+
+config CPU_MIPS1004K
+	bool
+	default y if SOC_CPU_MIPS1004K
+	select MIPS_CPS if SOC_ENABLE_CPS
+	select MIPS_MT if SOC_ENABLE_MT
+
+config CPU_MIPS1074K
+        bool
+	default y if SOC_CPU_MIPS1074K
+	select MIPS_CPS if SOC_ENABLE_CPS
+
+config CPU_RLX4181
+	bool
+	default y if SOC_CPU_RLX4181
+
+config CPU_RLX5181
+	bool
+	default y if SOC_CPU_RLX5181
+
+config CPU_RLX4281
+	bool
+	default y if SOC_CPU_RLX4281 || SOC_CPU_RLX4381
+	default y if SOC_CPU_RLX4271 || SOC_CPU_RLX4371
+	select MIPS_CMP if SOC_ENABLE_CMP
+
+config CPU_RLX5281
+	bool
+	default y if SOC_CPU_RLX5281 || SOC_CPU_RLX5381
+	default y if SOC_CPU_RLX5271 || SOC_CPU_RLX5371
+	select MIPS_CMP if SOC_ENABLE_CMP
+
+config MIPS_CMP
+	bool
+
+config MIPS_MT
+	bool
+
+#
+# CACHE
+#
+config CPU_HAS_L2C
+	bool
+	default y if SOC_ENABLE_L2C
+
+config CPU_HAS_LINE_SHIFT
+	bool
+	default y
+	select MIPS_L1_CACHE_SHIFT_4 if SYS_DCACHE_LINE_SIZE = 16
+	select MIPS_L1_CACHE_SHIFT_5 if SYS_DCACHE_LINE_SIZE = 32
+	select MIPS_L1_CACHE_SHIFT_6 if SYS_DCACHE_LINE_SIZE = 64
+	select MIPS_L1_CACHE_SHIFT_7 if SYS_DCACHE_LINE_SIZE = 128
+	select MIPS_L1_CACHE_SHIFT_5 if SYS_DCACHE_LINE_SIZE = 0
+
+#
+# BUS
+#
+config HW_HAS_PCI
+	bool
+	default y if SOC_ENABLE_PCI
+
+config HW_HAS_USB
+	bool
+	default y if SOC_ENABLE_USB

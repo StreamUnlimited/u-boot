@@ -188,7 +188,7 @@ config SPI_FLASH_MTD
 	bool "SPI Flash MTD support"
 	depends on SPI_FLASH && MTD
 	help
-          Enable the MTD support for spi flash layer, this adapter is for
+	  Enable the MTD support for spi flash layer, this adapter is for
 	  translating mtd_read/mtd_write commands into spi_flash_read/write
 	  commands. It is not intended to use it within sf_cmd or the SPI
 	  flash subsystem. Such an adapter is needed for subsystems like
@@ -203,5 +203,31 @@ config SPL_SPI_FLASH_MTD
           Enable the MTD support for the SPI flash layer in SPL.
 
 	  If unsure, say N
+
+config SPI_FLASH_RTK_AMEBA
+	bool "Realtek Ameba SPI flash driver support"
+	depends on SPIC_RTK_AMEBA_RXI312 && DM_SPI_FLASH
+	select SPI_FLASH
+	select SPI_FLASH_MACRONIX
+	select BOARD_EARLY_INIT_R
+	help
+	  Realtek SPI flash driver support (driver model).
+
+choice SPI_FLASH_RTK_AMEBA_MODE
+	bool "Realtek Ameba SPI FLASH driver mode"
+	depends on SPI_FLASH_RTK_AMEBA
+	help
+	  Select the Ameba SPI mode.
+
+config SPI_FLASH_RTK_AMEBA_MODE_SINGLE
+	bool "Single Transfer Mode"
+
+config SPI_FLASH_RTK_AMEBA_MODE_DUAL
+	bool "Dual Transfer Mode"
+
+config SPI_FLASH_RTK_AMEBA_MODE_QUAD
+	bool "Quad Transfer Mode"
+
+endchoice
 
 endmenu # menu "SPI Flash Support"

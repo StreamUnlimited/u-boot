@@ -135,6 +135,16 @@ int spi_flash_std_probe(struct udevice *dev)
 	struct spi_slave *slave = dev_get_parent_priv(dev);
 	struct spi_flash *flash;
 
+/* set mode in spi_nor_scan() */
+#ifdef CONFIG_SPI_FLASH_RTK_AMEBA_MODE_SINGLE
+	slave->mode = SPI_TX_BYTE | SPI_RX_SLOW;
+#endif
+#ifdef CONFIG_SPI_FLASH_RTK_AMEBA_MODE_DUAL
+	slave->mode = SPI_TX_DUAL | SPI_RX_DUAL;
+#endif
+#ifdef CONFIG_SPI_FLASH_RTK_AMEBA_MODE_QUAD
+	slave->mode = SPI_TX_QUAD | SPI_RX_QUAD;
+#endif
 	flash = dev_get_uclass_priv(dev);
 	flash->dev = dev;
 	flash->spi = slave;

@@ -1,0 +1,5 @@
+config SERIAL_RTK_AMEBA
+        bool "UART Driver"
+		depends on DM_SERIAL
+        help
+          Select this to enable UART on Ameba SoCs.

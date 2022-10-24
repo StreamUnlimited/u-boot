@@ -1,0 +1,84 @@
+/*
+ * Realtek Semiconductor Corp.
+ *
+ * Device Tree Structure
+ */
+
+/dts-v1/;
+
+#include <dt-bindings/realtek/ameba_ipc/ameba_ipc_resource.h>
+
+/ {
+	model = "Ameba Platform";
+	compatible = "realtek,ameba";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	ocp {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		loguart: dwapb@4200c000 {
+			compatible = "realtek,ameba_serial";
+			reg = <0x4200c000 0x100>;
+			reg-shift = <2>;
+			reg-io-width = <1>;
+			clock-frequency = <40000000>;
+		};
+
+		spic: spi@44000000 {
+			compatible = "realtek,rxi312-spi";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			bus_num = <2>;
+			reg = <0x44000000 0x200>;
+			spi-deactivate-delay = <0>;
+
+			flash0: flash@0 {
+				compatible = "spi-nand";
+				reg = <0>;
+			};
+		};
+
+		usb: usb@40080000 {
+			compatible = "realtek,dwc-otg";
+			reg = <0x40080000 0x20000>;
+			g-rx-fifo-size = <512>;
+			g-np-tx-fifo-size = <256>;
+			g-tx-fifo-size = <128 120>;
+			phys = <&usb_phy 0>;
+			phy-names = "usb2-phy";
+			status = "okay";
+		};
+
+		usb_phy: usb-phy@41000000 {
+			compatible = "realtek,otg-phy";
+			reg = <0x400B0004 0x20>,
+				<0x41000060 4>,
+				<0x42008200 0x100>;
+			#phy-cells = <0>;
+			status = "okay";
+		};
+
+		otp: otp@0 {
+			compatible = "realtek,ameba-otp";
+			reg = <AIPC_SHARED_MEM_ADDR AIPC_SHARED_MEM_SIZE>, // res 0
+				<AIPC_REG_TX_DATA AIPC_REG_SIZE>, // res 1
+				<AIPC_REG_RX_DATA AIPC_REG_SIZE>, // res 2
+				<AIPC_REG_ISR AIPC_REG_SIZE>, // res 3
+				<AIPC_REG_IMR AIPC_REG_SIZE>, // res 4
+				<AIPC_REG_ICR AIPC_REG_SIZE>; // res 5
+		};
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x60300000 0x3D00000>; // Only cover the DRAM used by uboot. DRAM for kernel can be larger.
+	};
+
+	chosen {
+		stdout-path = &loguart;
+	};
+};

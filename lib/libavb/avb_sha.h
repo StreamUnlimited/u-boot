@@ -3,13 +3,13 @@
  * Copyright (C) 2016 The Android Open Source Project
  */
 
-#ifdef AVB_INSIDE_LIBAVB_H
-#error "You can't include avb_sha.h in the public header libavb.h."
-#endif
+//#ifdef AVB_INSIDE_LIBAVB_H
+//#error "You can't include avb_sha.h in the public header libavb.h."
+//#endif
 
-#ifndef AVB_COMPILATION
-#error "Never include this file, it may only be used from internal avb code."
-#endif
+//#ifndef AVB_COMPILATION
+//#error "Never include this file, it may only be used from internal avb code."
+//#endif
 
 #ifndef AVB_SHA_H_
 #define AVB_SHA_H_

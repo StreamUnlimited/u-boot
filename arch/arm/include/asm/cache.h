@@ -38,6 +38,7 @@ void arm_init_before_mmu(void);
 void arm_init_domains(void);
 void cpu_cache_initialization(void);
 void dram_bank_mmu_setup(int bank);
+void __asm_flush_aarch32_dcache_all(void);
 
 #endif
 

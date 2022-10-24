@@ -3,92 +3,70 @@
 # subdirectories here. Add them in the ".gitignore" file
 # in that subdirectory instead.
 #
+# NOTE! Please use 'git ls-files -i --exclude-standard'
+# command after changing this file, to see if there are
+# any tracked files which get ignored after the change.
+#
 # Normal rules (sorted alphabetically)
 #
 .*
 *.a
-*.asn1.[ch]
-*.bin
-*.cfgout
 *.dtb
-*.dtbo
 *.dtb.S
 *.elf
-*.exe
-*.gcda
-*.gcno
 *.i
-*.img
-*.lex.c
-*.lst
-*.mod.c
 *.o
 *.o.*
-*.order
-*.patch
-*.s
 *.su
-*.swp
-*.tab.[ch]
-
-# Build tree
-/build-*
-
-#
-# Top-level generic files
-#
-fit-dtb.blob*
-/MLO*
-/SPL*
-/System.map
-/u-boot*
-/boards.cfg
-/*.log
+*.bin
+*.lex.c
+*.map
+*.so
+*.tab.c
+*.tab.h
 
 #
-# git files that we don't want to ignore even it they are dot-files
+# git files that we don't want to ignore even if they are dot-files
 #
 !.gitignore
 !.mailmap
-
-#
-# Generated files
-#
-/spl/
-/tpl/
-/defconfig
+!.cocciconfig
+!.clang-format
 
 #
 # Generated include files
 #
-/include/config/
-/include/generated/
+include/generated
+include/config/*
+include/config.h
 
-# stgit generated dirs
-patches-*
-.stgit-edit.txt
-
-# quilt's files
-patches
-series
-
-# gdb files
-.gdb_history
-
-# cscope files
-cscope.*
-
-# tags files
-/tags
-/ctags
-/etags
-
-# gnu global files
-GPATH
-GRTAGS
-GSYMS
-GTAGS
-
-*.orig
-*~
-\#*#
+#
+# Generated files
+#
+arch/arm/include/asm/arch
+arch/arm/lib/asm-offsets.s
+configs/*.md
+examples/standalone/hello_world
+examples/standalone/hello_world.srec
+include/autoconf.mk
+include/autoconf.mk.dep
+lib/asm-offsets.s
+lib/efi_loader/helloworld.efi
+scripts/basic/fixdep
+scripts/dtc/dtc
+scripts/kconfig/conf
+scripts/kconfig/mconf
+tools/common/*
+tools/lib/*
+tools/dumpimage
+tools/fdtgrep
+tools/mkenvimage
+tools/mkimage
+tools/proftool
+tools/spl_size_limit
+u-boot
+u-boot.cfg
+u-boot.cfg.configs
+u-boot.lds
+u-boot.srec
+u-boot.sym

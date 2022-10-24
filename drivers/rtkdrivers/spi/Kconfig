@@ -1,0 +1,13 @@
+config SPIC_RTK_AMEBA_RXI312
+        bool "SPIC driver"
+		depends on DM_SPI
+        help
+          Enable the Ameba SPI driver. This driver can be used to
+          access the SPI interface on Ameba platform.
+
+config SPIC_RTK_AMEBA_NAND
+        bool "Enable SPI nand flash drivers"
+        depends on SPIC_RTK_AMEBA_RXI312
+        help
+          Enable the SPI nand driver.
+

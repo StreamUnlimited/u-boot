@@ -10,6 +10,9 @@
 #include <asm/asm.h>
 #include <asm/regdef.h>
 #include <asm/mipsregs.h>
+#include <asm/cache.h>
+#include <asm/smp-boot.h>
+
 
 #ifndef CONFIG_SYS_INIT_SP_ADDR
 #define CONFIG_SYS_INIT_SP_ADDR	(CONFIG_SYS_SDRAM_BASE + \
@@ -31,6 +34,19 @@
 # endif
 # define MIPS_RELOC	MIPS64_R_INFO(0x00, 0x00, 0x12, 0x03)
 # define STATUS_SET	ST0_KX
+#endif
+
+#if defined(CONFIG_SOC_CPU_RLX)
+	.macro  read_cpu_id reg
+	mfc0    \reg, CP0_PRID
+	srl     \reg, 16
+	andi    \reg, 0x3
+	.endm
+#else
+	.macro  read_cpu_id reg
+	mfc0    \reg, CP0_EBASE
+	and     \reg, \reg, EBASE_CPUNUM
+       .endm
 #endif
 
 	.set noreorder
@@ -103,6 +119,16 @@ ENTRY(_start)
 	 * cannot be handled. Halt execution and transfer control to debugger,
 	 * if one is attached.
 	 */
+	.org 0x100
+	/* TLB refill, 32 bit task, R3000 */
+1:      b       1b
+	nop
+
+	.org 0x180
+	/* General exception, R3000 */
+1:      b       1b
+	nop
+
 	.org 0x200
 	/* TLB refill, 32 bit task */
 	uhi_mips_exception
@@ -146,16 +172,20 @@ reset:
 1:	mfc0	t0, CP0_DIAGNOSTIC, 3
 	and	t0, t0, (1 << 31)
 #else
-1:	mfc0	t0, CP0_EBASE
-	and	t0, t0, EBASE_CPUNUM
+1:	read_cpu_id t0
 #endif
 
+#ifndef CONFIG_SOC_CPU_RLX
+1:      read_cpu_id t0
 	/* Hang if this isn't the first CPU in the system */
 2:	beqz	t0, 4f
 	 nop
+
 3:	wait
+
 	b	3b
 	 nop
+#endif
 
 	/* Init CP0 Status */
 4:	mfc0	t0, CP0_STATUS
@@ -163,6 +193,7 @@ reset:
 	or	t0, ST0_BEV | ST0_ERL | STATUS_SET
 	mtc0	t0, CP0_STATUS
 
+#ifndef CONFIG_SOC_CPU_RLX
 	/*
 	 * Check whether CP0 Config1 is implemented. If not continue
 	 * with legacy Watch register initialization.
@@ -192,10 +223,13 @@ reset:
 	init_wr	7
 	b	wr_done
 	 nop
+#endif
 
 wr_legacy:
+#ifdef CONFIG_CPU_MIPS32
 	MTC0	zero, CP0_WATCHLO
-	mtc0	zero, CP0_WATCHHI
+	MTC0	zero, CP0_WATCHHI
+#endif
 
 wr_done:
 	/* Clear WP, IV and SW interrupts */
@@ -210,6 +244,9 @@ wr_done:
 	or	t0, t0, CONF_CM_UNCACHED
 	mtc0	t0, CP0_CONFIG
 	ehb
+
+	/* Disable dcache */
+	setup_c0_config CONF_CM_UNCACHED
 #endif
 
 #ifdef CONFIG_MIPS_CM
@@ -239,6 +276,7 @@ wr_done:
 
 #ifndef CONFIG_SKIP_LOWLEVEL_INIT
 # ifdef CONFIG_SYS_MIPS_CACHE_INIT_RAM_LOAD
+
 	/* Initialize any external memory */
 	PTR_LA	t9, lowlevel_init
 	jalr	t9
@@ -255,7 +293,17 @@ wr_done:
 	PTR_LA	t9, lowlevel_init
 	jalr	t9
 	 nop
+
+	/* ... and enable them */
+	setup_c0_config CONFIG_SYS_MIPS_CACHE_MODE
 # endif
+#endif
+
+#ifdef CONFIG_MIPS_CMP
+	/* read cpu num id */
+	read_cpu_id v1
+	bnez    v1, secondary_cpu
+	 nop
 #endif
 
 #ifndef CONFIG_MIPS_INIT_STACK_IN_SRAM
@@ -270,10 +318,49 @@ wr_done:
 # endif
 #endif
 
+#ifdef CONFIG_MIPS_CMP
+	/* power on other cores */
+	PTR_LA  t9, mips_cpc_setup      # setup cluster power control
+	jalr    t9
+	 nop
+
+	/* setup coherence manager */
+	PTR_LA  t9, mips_cm_setup       # setup coherence manager
+	jalr    t9
+	 nop
+
+	/* copy cmp boot code to dram */
+	PTR_LA  t9, mips_cmp_copy       # copy cmpboot to dram
+	jalr    t9
+	nop
+
+	PTR_LA  t9, mips_cmp_first      # start vpe0 on cpu0
+	jalr    t9
+	 nop
+
+	PTR_LA  t9, plat_boot_secondary # send secondary cpu off
+	jalr    t9
+	 nop
+#endif /* CONFIG_MIPS_CMP */
+
+
 	move	a0, zero		# a0 <-- boot_flags = 0
 	PTR_LA	t9, board_init_f
 
 	jr	t9
 	 move	ra, zero
+
+#ifdef CONFIG_MIPS_CMP
+	.global secondary_cpu
+
+secondary_cpu:
+	PTR_LA  t9, mips_cm_setup       # setup coherence manager
+	jalr    t9
+	 nop
+
+	la      t9, CMP_SMPBOOT
+	jr      t9
+	move   ra, zero
+#endif /* CONFIG_MIPS_CMP */
 
 	END(_start)

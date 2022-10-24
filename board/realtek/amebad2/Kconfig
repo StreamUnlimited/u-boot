@@ -1,0 +1,15 @@
+#
+# u-Boot
+#
+
+config SYS_VENDOR
+	default "realtek"
+
+config SYS_BOARD
+	default "amebad2"
+
+config SYS_CONFIG_NAME
+	default "amebad2"
+
+config SYS_TEXT_BASE
+	default "0x60400000"

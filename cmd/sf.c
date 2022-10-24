@@ -25,6 +25,7 @@
 #include "legacy-mtd-utils.h"
 
 static struct spi_flash *flash;
+#define MISC_OPTION_CMD_SIZE	32
 
 /*
  * This function computes the length argument for the erase command.
@@ -318,6 +319,64 @@ static int do_spi_flash_read_write(int argc, char *const argv[])
 	return ret == 0 ? 0 : 1;
 }
 
+static int do_spi_flash_opt_boot_read(int argc, char *const argv[])
+{
+	char *endp;
+	int ret = 1;
+	loff_t offset, len;
+	char *argv_read[4] = {"read", "0xFFFFFFFF", "0xFFFFFFFF", "0xFFFFFFFF"};
+	char opt[32] = "boot-recovery";
+	u8 buf[32];
+
+	if (argc < 12) {
+		return -1;
+	}
+
+	len = MISC_OPTION_CMD_SIZE;
+	offset = simple_strtoul(argv[1], &endp, 16);
+
+	/* Consistency checking */
+	if (offset + len > flash->size) {
+		printf("ERROR: attempting %s past flash size (%#x)\n",
+		       argv[1], flash->size);
+		return 1;
+	}
+
+	ret = spi_flash_read(flash, offset, len, buf);
+
+	printf("SF: %zu bytes @ %#x opt-read", (size_t)len, (u32)offset);
+	if (ret)
+		printf("ERROR %d\n", ret);
+	else
+		printf("OK\n");
+
+	if (memcmp(buf, opt, MISC_OPTION_CMD_SIZE) == 0) {
+		/* Boot Recovery. */
+		printf("Prepare to boot recovery image now.\n");
+		argv_read[1] = argv[4];				// DDR address.
+		argv_read[2] = argv[11];			// Flash address
+		argv_read[3] = argv[12];			// Flash Size
+		do_spi_flash_read_write(4, argv_read);
+		argv_read[1] = argv[3];
+		argv_read[2] = argv[9];
+		argv_read[3] = argv[10];
+		do_spi_flash_read_write(4, argv_read);
+	} else {
+		/* Boot Normal. */
+		printf("Prepare to boot normal image now.\n");
+		argv_read[1] = argv[4];
+		argv_read[2] = argv[7];
+		argv_read[3] = argv[8];
+		do_spi_flash_read_write(4, argv_read);
+		argv_read[1] = argv[3];
+		argv_read[2] = argv[5];
+		argv_read[3] = argv[6];
+		do_spi_flash_read_write(4, argv_read);
+	}
+
+	return ret == 0 ? 0 : 1;
+}
+
 static int do_spi_flash_erase(int argc, char *const argv[])
 {
 	int ret;
@@ -575,6 +634,8 @@ static int do_spi_flash(struct cmd_tbl *cmdtp, int flag, int argc,
 		ret = do_spi_flash_erase(argc, argv);
 	else if (strcmp(cmd, "protect") == 0)
 		ret = do_spi_protect(argc, argv);
+	else if (strcmp(cmd, "opt_read") == 0)
+		ret = do_spi_flash_opt_boot_read(argc, argv);
 #ifdef CONFIG_CMD_SF_TEST
 	else if (!strcmp(cmd, "test"))
 		ret = do_spi_flash_test(argc, argv);
@@ -598,7 +659,7 @@ usage:
 #endif
 
 U_BOOT_CMD(
-	sf,	5,	1,	do_spi_flash,
+	sf,	15,	1,	do_spi_flash,
 	"SPI flash sub-system",
 	"probe [[bus:]cs] [hz] [mode]	- init flash device on given SPI bus\n"
 	"				  and chip select\n"
@@ -616,5 +677,21 @@ U_BOOT_CMD(
 	"					  or to start of mtd `partition'\n"
 	"sf protect lock/unlock sector len	- protect/unprotect 'len' bytes starting\n"
 	"					  at address 'sector'\n"
+	"sf opt_read A B C D E F G H I J K	- `A` AP MISC area Address;\n"
+	"					- `B` AP MISC area Size;\n"
+	"					- `C` Kernel Address in DDR;\n"
+	"					- `D` FDT Address in DDR;\n"
+	"					- `E` Common Kernel Address in Flash;\n"
+	"					- `F` Common Kernel Size in Flash;\n"
+	"					- `G` Common FDT Address in Flash;\n"
+	"					- `H` Common FDT Size in Flash;\n"
+	"					- `I` Recovery Kernel Address in Flash;\n"
+	"					- `J` Recovery Kernel Size in Flash;\n"
+	"					- `K` Recovery FDT Address in Flash;\n"
+	"					- `L` Recovery FDT Size in Flash.\n"
+	"					- choose common or recovery image to boot.\n"
+	"					- read chosen `len' bytes starting at\n"
+	"					  chosen `offset' or from start of mtd\n"
+	"					  chosen `partition'to memory at chosen `addr'\n"
 	SF_TEST_HELP
 );

@@ -1,0 +1,17 @@
+
+# Formosa Configuration
+#
+# Tony Wu (tonywu@realtek.com)
+# Dec. 07, 2008
+#
+
+#
+# CPU
+#
+config CPU_RVTR9
+	bool
+	default y if SOC_CPU_RVTR9
+	select ARCH_EARLY_INIT_R
+	imply CPU
+	imply CPU_RISCV
+	imply RISCV_TIMER

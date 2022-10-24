@@ -4,12 +4,14 @@
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 
 obj-y	+= cache.o
-obj-y	+= cache_init.o
 obj-y	+= genex.o
 obj-y	+= reloc.o
 obj-y	+= stack.o
 obj-y	+= traps.o
 
+obj-$(CONFIG_CPU_MIPS32) += cache_init.o
+obj-$(CONFIG_CPU_MIPS64) += cache_init.o
+obj-$(CONFIG_CPU_TAROKO) += cache_init-taroko.o
 obj-$(CONFIG_CMD_BOOTM) += bootm.o
 obj-$(CONFIG_CMD_GO) += boot.o
 obj-$(CONFIG_SPL_BUILD) += spl.o

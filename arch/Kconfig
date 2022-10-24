@@ -6,7 +6,7 @@ config HAVE_ARCH_IOREMAP
 
 choice
 	prompt "Architecture select"
-	default SANDBOX
+	default ARM
 
 config ARC
 	bool "ARC architecture"
@@ -21,6 +21,8 @@ config ARM
 	bool "ARM architecture"
 	select CREATE_ARCH_SYMLINK
 	select HAVE_PRIVATE_LIBGCC if !ARM64
+	select HAVE_GENERIC_BOARD
+	select SYS_GENERIC_BOARD
 	select SUPPORT_OF_CONTROL
 
 config M68K

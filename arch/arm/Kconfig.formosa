@@ -1,0 +1,112 @@
+#
+# Realtek Semiconductor Corp.
+#
+# RLX Linux Kernel Configuration
+#
+# Tony Wu (tonywu@realtek.com)
+# Dec. 07, 2008
+#
+
+#
+# CPU
+#
+config CPU_ARMKM4
+	bool
+	default y if SOC_CPU_ARMKM4
+	select CPU_V7M
+	select SYS_ARCH_TIMER
+	select OF_LIBFDT
+	select SPL_BUILD
+
+config CPU_ARMTM9
+	bool
+	default y if SOC_CPU_ARMTM9
+	select CPU_V7M
+	select SYS_ARCH_TIMER
+	select OF_LIBFDT
+
+config CPU_ARMA5
+	bool
+	default y if SOC_CPU_ARMA5
+	select CPU_V7A
+	select OF_LIBFDT
+
+config CPU_ARMA7
+	bool
+	default y if SOC_CPU_ARMA7
+	select CPU_V7A
+	select SYS_ARCH_TIMER
+	select OF_LIBFDT
+
+config CPU_ARMA9
+	bool
+	default y if SOC_CPU_ARMA9
+	select CPU_V7A
+	select OF_LIBFDT
+
+config CPU_ARMA12
+	bool
+	default y if SOC_CPU_ARMA12
+	select CPU_V7A
+	select SYS_ARCH_TIMER
+	select OF_LIBFDT
+
+config CPU_ARMA15
+	bool
+	default y if SOC_CPU_ARMA15
+	select CPU_V7A
+	select SYS_ARCH_TIMER
+	select OF_LIBFDT
+
+config CPU_ARMA17
+	bool
+	default y if SOC_CPU_ARMA17
+	select CPU_V7A
+	select SYS_ARCH_TIMER
+	select OF_LIBFDT
+
+config CPU_ARMA53
+	bool
+	default y if SOC_CPU_ARMA53
+	select ARM64 if SOC_CPU_ARM64
+	select CPU_V8 if SOC_CPU_ARM
+	select SYS_ARCH_TIMER
+	select OF_LIBFDT
+
+config CPU_ARMA55
+	bool
+	default y if SOC_CPU_ARMA55
+	select ARM64 if SOC_CPU_ARM64
+	select CPU_V8 if SOC_CPU_ARM
+	select SYS_ARCH_TIMER
+	select OF_LIBFDT
+
+config CPU_ARMA57
+	bool
+	default y if SOC_CPU_ARMA57
+	select ARM64 if SOC_CPU_ARM64
+	select CPU_V8 if SOC_CPU_ARM
+	select SYS_ARCH_TIMER
+	select OF_LIBFDT
+
+config CPU_ARMA57_A53
+	bool
+	default y if SOC_CPU_ARMA57_A53
+	select ARM64 if SOC_CPU_ARM64
+	select CPU_V8 if SOC_CPU_ARM
+	select SYS_ARCH_TIMER
+	select OF_LIBFDT
+
+config CPU_ARMA75_A55
+	bool
+	default y if SOC_CPU_ARMA75_A55
+	select ARM64 if SOC_CPU_ARM64
+	select CPU_V8 if SOC_CPU_ARM
+	select SYS_ARCH_TIMER
+	select OF_LIBFDT
+
+#
+# features
+#
+config SYS_ARCH_TIMER
+	bool

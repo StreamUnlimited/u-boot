@@ -6,7 +6,10 @@ config SYS_ARCH
 
 choice
 	prompt "Target select"
-	optional
+	default TARGET_SHEIPA_RISCV
+
+config TARGET_SHEIPA_RISCV
+	bool "Support Sheipa Platform"
 
 config TARGET_AX25_AE350
 	bool "Support ax25-ae350"
@@ -49,12 +52,19 @@ config SPL_SYS_DCACHE_OFF
 	  Do not enable data cache in SPL.
 
 # board-specific options below
+
+# remove sheipa Kconfig first
+# TODO:
+#   use a specific board name instead of sheipa
+#   so that multi board supported in one Kconfig
+#source "board/realtek/sheipa/Kconfig"
 source "board/AndesTech/ax25-ae350/Kconfig"
 source "board/emulation/qemu-riscv/Kconfig"
 source "board/microchip/mpfs_icicle/Kconfig"
 source "board/sifive/fu540/Kconfig"
 
 # platform-specific options below
+source "arch/riscv/Kconfig.formosa"
 source "arch/riscv/cpu/ax25/Kconfig"
 source "arch/riscv/cpu/fu540/Kconfig"
 source "arch/riscv/cpu/generic/Kconfig"

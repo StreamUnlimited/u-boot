@@ -6,6 +6,7 @@
 extra-y	:= start.o
 
 obj-y	+= cache_v7.o cache_v7_asm.o
+obj-$(CONFIG_CPU_V8) += cache_v8.o
 
 obj-y	+= cpu.o cp15.o
 obj-y	+= syslib.o

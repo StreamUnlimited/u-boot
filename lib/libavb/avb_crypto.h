@@ -3,9 +3,9 @@
  * Copyright (C) 2016 The Android Open Source Project
  */
 
-#if !defined(AVB_INSIDE_LIBAVB_H) && !defined(AVB_COMPILATION)
-#error "Never include this file directly, include libavb.h instead."
-#endif
+//#if !defined(AVB_INSIDE_LIBAVB_H) && !defined(AVB_COMPILATION)
+//#error "Never include this file directly, include libavb.h instead."
+//#endif
 
 #ifndef AVB_CRYPTO_H_
 #define AVB_CRYPTO_H_

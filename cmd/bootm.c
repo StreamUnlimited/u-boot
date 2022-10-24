@@ -20,6 +20,10 @@
 #include <linux/err.h>
 #include <u-boot/zlib.h>
 #include <mapmem.h>
+#include <console.h>
+#include <mtd.h>
+#include <dm/devres.h>
+#include <linux/ctype.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -92,7 +96,29 @@ static int do_bootm_subcommand(struct cmd_tbl *cmdtp, int flag, int argc,
 
 int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
-#ifdef CONFIG_NEEDS_MANUAL_RELOC
+#if (IS_ENABLED(CONFIG_VERIFIED_BOOT))
+	extern int avb_flag;
+	extern int realtek_linux_verified_boot(
+		unsigned long ddr_kernel_addr, unsigned long ddr_dtb_addr,
+		const u8* vbmeta_buf, u64 vbmeta_len,
+		const u8* cert_buf, u64 cert_buf_len);
+
+	if (strcmp(argv[1], "verify") == 0) {
+		realtek_linux_verified_boot(simple_strtoul(argv[2], NULL, 16), simple_strtoul(argv[3], NULL, 16),
+								(u8*)simple_strtoul(argv[4], NULL, 16), (u64)simple_strtoul(argv[5], NULL, 16),
+								(u8*)simple_strtoul(argv[6], NULL, 16), (u64)simple_strtoul(argv[7], NULL, 16));
+
+		argc-=7;
+		argv+=7;
+	}
+
+	if (avb_flag != 1) {
+		printf("Bootm fail! Please verify images correctly.\n");
+		return 0;
+	}
+#endif
+
+#ifdef CONFIG_NEEDS_MANUAL_RELOCmake
 	static int relocated = 0;
 
 	if (!relocated) {
