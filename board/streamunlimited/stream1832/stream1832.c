@@ -653,9 +653,6 @@ int board_init(void)
 			printf("Error, i2c failed to communicate with PMIC AXP313A,i2c slave address 0x36 : %d\n", ret);
 		}
 	}
-#ifdef CONFIG_AML_V2_FACTORY_BURN
-	aml_try_factory_usb_burning(0, gd->bd);
-#endif// #ifdef CONFIG_AML_V2_FACTORY_BURN
 
 #ifdef CONFIG_USB_XHCI_AMLOGIC_GXL
 	board_usb_init(&g_usb_config_GXL_skt,BOARD_USB_MODE_HOST);
@@ -743,6 +740,10 @@ int board_late_init(void){
 	setenv("secure_board", secure);
 
 	sue_carrier_late_init(&current_device);
+
+#ifdef CONFIG_AML_V2_FACTORY_BURN
+	aml_try_factory_usb_burning(0, gd->bd);
+#endif// #ifdef CONFIG_AML_V2_FACTORY_BURN
 
 	return 0;
 }
