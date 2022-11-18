@@ -18,6 +18,7 @@ struct env_opts {
 	char *config_file;
 #endif
 	char *lockname;
+	int fallback_default_env;
 };
 
 /**

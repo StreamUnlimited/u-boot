@@ -49,6 +49,7 @@ static struct option long_options[] = {
 	{"noheader", no_argument, NULL, 'n'},
 	{"lock", required_argument, NULL, 'l'},
 	{"version", no_argument, NULL, 'v'},
+	{"default", no_argument, NULL, 'd'},
 	{NULL, 0, NULL, 0}
 };
 
@@ -74,6 +75,7 @@ void usage_printenv(void)
 #endif
 		" -n, --noheader       do not repeat variable name in output\n"
 		" -l, --lock           lock node, default:/var/lock\n"
+		" -d, --default        load/show default environment if it was empty\n"
 		"\n");
 }
 
@@ -90,6 +92,7 @@ void usage_env_set(void)
 #endif
 		" -l, --lock           lock node, default:/var/lock\n"
 		" -s, --script         batch mode to minimize writes\n"
+		" -d, --default        load/store default environment if it was empty before writing the variable\n"
 		"\n"
 		"Examples:\n"
 		"  fw_setenv foo bar   set variable foo equal bar\n"
@@ -120,7 +123,9 @@ static void parse_common_args(int argc, char *argv[])
 	env_opts.config_file = CONFIG_FILE;
 #endif
 
-	while ((c = getopt_long(argc, argv, ":a:c:l:h:v", long_options, NULL)) !=
+	env_opts.fallback_default_env = 0;
+
+	while ((c = getopt_long(argc, argv, ":a:c:l:h:vd", long_options, NULL)) !=
 	       EOF) {
 		switch (c) {
 #ifdef CONFIG_FILE
@@ -139,6 +144,9 @@ static void parse_common_args(int argc, char *argv[])
 			fprintf(stderr, "Compiled with " U_BOOT_VERSION "\n");
 			exit(EXIT_SUCCESS);
 			break;
+		case 'd':
+			env_opts.fallback_default_env = 1;
+			break;
 		default:
 			/* ignore unknown options */
 			break;
@@ -156,7 +164,7 @@ int parse_printenv_args(int argc, char *argv[])
 
 	parse_common_args(argc, argv);
 
-	while ((c = getopt_long(argc, argv, "a:c:ns:l:h:v", long_options, NULL))
+	while ((c = getopt_long(argc, argv, "a:c:ns:l:h:vd", long_options, NULL))
 		!= EOF) {
 		switch (c) {
 		case 'n':
@@ -166,6 +174,7 @@ int parse_printenv_args(int argc, char *argv[])
 		case 'c':
 		case 'h':
 		case 'l':
+		case 'd':
 			/* ignore common options */
 			break;
 		default: /* '?' */
@@ -183,7 +192,7 @@ int parse_setenv_args(int argc, char *argv[])
 
 	parse_common_args(argc, argv);
 
-	while ((c = getopt_long(argc, argv, "a:c:ns:l:h:v", long_options, NULL))
+	while ((c = getopt_long(argc, argv, "a:c:ns:l:h:vd", long_options, NULL))
 		!= EOF) {
 		switch (c) {
 		case 's':
@@ -193,6 +202,7 @@ int parse_setenv_args(int argc, char *argv[])
 		case 'c':
 		case 'h':
 		case 'l':
+		case 'd':
 			/* ignore common options */
 			break;
 		default: /* '?' */
