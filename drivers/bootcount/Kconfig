@@ -16,6 +16,9 @@ choice
 	default BOOTCOUNT_AT91 if AT91SAM9XE
 	default BOOTCOUNT_GENERIC
 
+config BOOTCOUNT_FWUPDATE
+	bool "Fwupdate based boot counter on StreamUnlimited devices"
+
 config BOOTCOUNT_GENERIC
 	bool "Generic default boot counter"
 	help
