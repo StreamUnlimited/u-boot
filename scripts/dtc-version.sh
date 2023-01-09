@@ -14,7 +14,7 @@ if [ ${#dtc} -eq 0 ]; then
 	exit 1
 fi
 
-MAJOR=$($dtc -v | head -1 | awk '{print $NF}' | cut -d . -f 1)
-MINOR=$($dtc -v | head -1 | awk '{print $NF}' | cut -d . -f 2)
+MAJOR=$($dtc -v | head -1 | awk '{print $NF}' | sed 's/[^0-9.]//g' | cut -d . -f 1)
+MINOR=$($dtc -v | head -1 | awk '{print $NF}' | sed 's/[^0-9.]//g' | cut -d . -f 2)
 
 printf "%02d%02d\\n" $MAJOR $MINOR
