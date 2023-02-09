@@ -18,6 +18,12 @@
 DECLARE_GLOBAL_DATA_PTR;
 #endif
 
+/* FIFO length */
+#define RXI312_FIFO_LENGTH	32
+
+/* Get unaligned buffer size */
+#define UNALIGNED32(buf)	((4 - ((u32)(buf) & 0x3)) & 0x3)
+
 void udelay(unsigned long usec);
 
 /*
@@ -146,6 +152,7 @@ static int select_nand_op(spic_mode *mode, uint8_t cmd)
 	int ret = 0;
 
 	switch (cmd) {
+	case NAND_CMD_BE:
 	case NAND_CMD_WREN:
 	case NAND_CMD_WRDI:
 	case NAND_CMD_WRSR:
@@ -208,13 +215,18 @@ static int select_nand_op(spic_mode *mode, uint8_t cmd)
 
 static int do_spi_send(struct udevice *udev, const void *tx_data, unsigned int len, unsigned long flags)
 {
-	int i, ret = 0;
+	int ret = 0;
 	struct ameba_spi *dev = dev_get_priv(udev);
 	struct spi_flash_portmap *spi_flash_map = dev->regs;
 	u32 ctrl0, value;
 	spic_mode mode = {0};
 	u8 *tx_buf = (u8*) tx_data;
 	u8 cmd = tx_buf[0];
+	u32 i = 0;
+	u32 j;
+	u32 *aligned32_buf;
+	u32 unaligned32_bytes;
+	u32 fifo_level;
 
 	if (flags & SPI_XFER_BEGIN) {
 		/* Enter user mode */
@@ -278,25 +290,30 @@ static int do_spi_send(struct udevice *udev, const void *tx_data, unsigned int l
 		spi_flash_map->tx_ndf = TX_NDF(len);
 		spi_flash_map->rx_ndf = RX_NDF(0);
 		
-		/* we can not set ssienr=1 when FIFO empty */
-		/* Pre-load data before enabling, but there are just 16 - 4 = 12 bytes fifo afer cmd+addr */
-		for ( i = 0; i < len;) {
-			if (spi_flash_map->sr & BIT_TFNF) {
-				spi_flash_map->dr[0].byte = tx_buf[i];
-				i++;
-			} else {
-				break;
-			}
-		}
-
 		/* Enable SSIENR to start the transfer */
 		spi_flash_map->ssienr = BIT_SPIC_EN;
 
-		/* write the remaining data into fifo */
+		unaligned32_bytes = UNALIGNED32(tx_buf);
+		while ((i < unaligned32_bytes) && (i < len)) {
+			if (spi_flash_map->txflr <= RXI312_FIFO_LENGTH - 1) {
+				spi_flash_map->dr[0].byte = tx_buf[i++];
+			}
+		}
+
+		aligned32_buf = (u32 *)&tx_buf[i];
+
+		while (i + 4 <= len) {
+			fifo_level = (RXI312_FIFO_LENGTH - spi_flash_map->txflr) >> 2;
+			for (j = 0; (j < fifo_level) && (i + 4 <= len); j++) {
+				spi_flash_map->dr[0].word = aligned32_buf[j];
+				i += 4;
+			}
+			aligned32_buf += fifo_level;
+		}
+
 		while (i < len) {
-			if (spi_flash_map->sr & BIT_TFNF) {
-				spi_flash_map->dr[0].byte = tx_buf[i];
-				i++;
+			if (spi_flash_map->txflr <= RXI312_FIFO_LENGTH - 1) {
+				spi_flash_map->dr[0].byte = tx_buf[i++];
 			}
 		}
 
@@ -315,7 +332,11 @@ static int do_spi_recv(struct udevice *udev, const unsigned char *rx_data, unsig
 	struct ameba_spi *dev = dev_get_priv(udev);
 	struct spi_flash_portmap *spi_flash_map = dev->regs;
 	u8 *rx_buf = (u8 *)rx_data;
-	u32 rx_num, cnt, i = 0, data;
+	u32 i = 0;
+	u32 j;
+	u32 *aligned32_buf;
+	u32 unaligned32_bytes;
+	u32 fifo_level;
 	
 	/* Set RX_NDF: frame number of receiving data. TX_NDF should be set in both transmit mode and receive mode.
 		TX_NDF should be set to zero in receive mode to skip the TX_DATA phase. */
@@ -325,18 +346,28 @@ static int do_spi_recv(struct udevice *udev, const unsigned char *rx_data, unsig
 	/* Enable SSIENR to start the transfer */
 	spi_flash_map->ssienr = BIT_SPIC_EN;
 
-	rx_num = 0;
-	while (rx_num < len) {
-		cnt = spi_flash_map->rxflr;
-		for (i = 0; i < cnt / 4; i++) {
-			data = spi_flash_map->dr[0].word;
-			memcpy((void*)(rx_buf + rx_num), (void*)&data, 4);
-			rx_num += 4;
+	unaligned32_bytes = UNALIGNED32(rx_buf);
+	while ((i < unaligned32_bytes) && (i < len)) {
+		if (spi_flash_map->rxflr >= 1) {
+			rx_buf[i++] = spi_flash_map->dr[0].byte;
 		}
+	}
 
-		for (i = 0; i < cnt % 4; i++) {
-			*(u8*)(rx_buf + rx_num) = spi_flash_map->dr[0].byte;
-			rx_num += 1;
+	aligned32_buf = (u32 *)&rx_buf[i];
+
+	while (i + 4 <= len) {
+		fifo_level = spi_flash_map->rxflr >> 2;
+		// A safe way to avoid HW error: (j < fifo_level) && (i + 4 <= nbytes)
+		for (j = 0; j < fifo_level; j++) {
+			aligned32_buf[j] = spi_flash_map->dr[0].word;
+		}
+		i += fifo_level << 2;
+		aligned32_buf += fifo_level;
+	}
+
+	while (i < len) {
+		if (spi_flash_map->rxflr >= 1) {
+			rx_buf[i++] = spi_flash_map->dr[0].byte;
 		}
 	}
 
@@ -443,14 +474,10 @@ int ameba_dm_spi_set_mode(struct udevice *udev, uint mode)
 			mode |= SPI_CPHA;
 		}
 
-		if (valid_cmd & BIT_RD_QUAD_IO) {
+		if (((valid_cmd & BIT_RD_QUAD_IO) != 0) || ((valid_cmd & BIT_RD_QUAD_O) != 0)) {
 			mode |= SPI_TX_QUAD | SPI_RX_QUAD;
-		} else if (valid_cmd & BIT_RD_QUAD_O) {
-			mode |= SPI_RX_QUAD;
-		} else if (valid_cmd & BIT_RD_DUAL_IO) {
+		} else if (((valid_cmd & BIT_RD_DUAL_IO) != 0) || ((valid_cmd & BIT_RD_DUAL_I) != 0)) {
 			mode |= SPI_TX_DUAL | SPI_RX_DUAL;
-		} else if (valid_cmd & BIT_RD_DUAL_I) {
-			mode |= SPI_RX_DUAL;
 		}
 	}
 	priv->mode = mode;
