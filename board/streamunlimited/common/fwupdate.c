@@ -101,7 +101,7 @@ int fwupdate_init(const struct sue_device_info *device_info)
 	bootlimit = getenv("bootlimit");
 	if (NULL == bootlimit) {
 		char buf[16];
-		sprintf(buf, "%lu", FWUP_MAX_BOOT_CNT);
+		snprintf(buf, sizeof(buf), "%lu", FWUP_MAX_BOOT_CNT);
 		setenv("bootlimit", buf);
 	}
 
@@ -110,7 +110,7 @@ int fwupdate_init(const struct sue_device_info *device_info)
 	module_version = getenv("module_version");
 	if (NULL == module_version) {
 		char buf[8];
-		sprintf(buf, "%u", current_device->module_version);
+		snprintf(buf, sizeof(buf), "%u", current_device->module_version);
 		setenv("module_version", buf);
 	}
 
