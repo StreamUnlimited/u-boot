@@ -547,6 +547,14 @@ config ENV_SIZE
 	help
 	  Size of the environment storage area
 
+config ENV_SIZE_REDUND
+	hex "Redundant Env Size for MTD devices"
+	depends on ENV_IS_IN_MTD
+	default 0x3e000
+	help
+	  This specifies the maximum size allowed for read/write/erase
+	  with skipped bad blocks starting from ENV_OFFSET.
+
 config ENV_SECT_SIZE
 	hex "Environment Sector-Size"
 	depends on ENV_IS_IN_FLASH || ENV_IS_IN_SPI_FLASH
