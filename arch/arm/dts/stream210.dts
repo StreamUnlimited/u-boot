@@ -1,0 +1,93 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+/dts-v1/;
+
+#include <dt-bindings/realtek/ameba_ipc/ameba_ipc_resource.h>
+
+/ {
+	model = "Stream210";
+	compatible = "realtek,ameba";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	ocp {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		loguart: dwapb@4200c000 {
+			compatible = "realtek,amebad2-loguart";
+			reg = <0x4200c000 0x100>;
+			reg-shift = <2>;
+			reg-io-width = <1>;
+			clock-frequency = <40000000>;
+		};
+
+		spic: spi@44000000 {
+			compatible = "realtek,rxi312";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			bus_num = <2>;
+			reg = <0x44000000 0x200>;
+			spi-deactivate-delay = <0>;
+
+			flash0: flash@0 {
+				compatible = "spi-nand";
+				reg = <0>;
+			};
+		};
+
+		usb: usb@40080000 {
+			compatible = "realtek,dwc-otg";
+			reg = <0x40080000 0x20000>;
+			g-rx-fifo-size = <512>;
+			g-np-tx-fifo-size = <256>;
+			g-tx-fifo-size = <128 120>;
+			phys = <&usb_phy 0>;
+			phy-names = "usb2-phy";
+			status = "okay";
+		};
+
+		fsusb: fsusb@40080000 {
+			compatible = "realtek,dwc-fastboot";
+			reg = <0x40080000 0x20000>;
+			g-rx-fifo-size = <512>;
+			g-np-tx-fifo-size = <256>;
+			g-tx-fifo-size = <128 120>;
+			phys = <&usb_phy>;
+			phy-names = "usb2-phy";
+			dr_mode="peripheral";
+			status = "okay";
+			u-boot,force-b-session-valid;
+		};
+
+		usb_phy: usb-phy@41000000 {
+			compatible = "realtek,amebad2-otg-phy";
+			reg = <0x400B0000 0x20>,
+				<0x41000060 4>,
+				<0x42008000 0x400>;
+			#phy-cells = <0>;
+			status = "okay";
+		};
+
+		otp: otp@0 {
+			compatible = "realtek,amebad2-otp";
+			reg = <AIPC_SHARED_MEM_ADDR AIPC_SHARED_MEM_SIZE>, // res 0
+				<AIPC_REG_TX_DATA AIPC_REG_SIZE>, // res 1
+				<AIPC_REG_RX_DATA AIPC_REG_SIZE>, // res 2
+				<AIPC_REG_ISR AIPC_REG_SIZE>, // res 3
+				<AIPC_REG_IMR AIPC_REG_SIZE>, // res 4
+				<AIPC_REG_ICR AIPC_REG_SIZE>; // res 5
+		};
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x60800000 0xF800000>;
+	};
+
+	chosen {
+		stdout-path = &loguart;
+	};
+};

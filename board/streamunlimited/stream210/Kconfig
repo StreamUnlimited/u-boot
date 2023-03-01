@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+if TARGET_STREAM210
+
+config SYS_VENDOR
+	default "streamunlimited"
+
+config SYS_BOARD
+	default "stream210"
+
+config SYS_CONFIG_NAME
+	default "stream210"
+
+config SUE_SECURE_BOOT
+	bool "StreamUnlimited secure boot additions"
+	default y
+
+endif

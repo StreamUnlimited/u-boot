@@ -4,6 +4,9 @@ dtb-$(CONFIG_TARGET_RTL8730E) += \
 	rtl8730e-uboot-nor.dtb \
 	rtl8730e-uboot-nand.dtb \
 
+dtb-$(CONFIG_TARGET_STREAM210) += \
+	stream210.dtb
+
 targets += $(dtb-y)
 
 # Add any required device tree compiler flags here

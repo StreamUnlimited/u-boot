@@ -540,6 +540,12 @@ config TARGET_RTL8730E
 	select SYS_ARCH_TIMER
 	select OF_LIBFDT
 
+config TARGET_STREAM210
+	bool "StreamUnlimited Stream210 module"
+	select CPU_V8
+	select SYS_ARCH_TIMER
+	select OF_LIBFDT
+
 endchoice
 
 config ARCH_SUPPORT_TFABOOT
@@ -579,6 +585,7 @@ config ISW_ENTRY_ADDR
 endif
 
 source "board/realtek/amebad2/Kconfig"
+source "board/streamunlimited/stream210/Kconfig"
 
 source "arch/arm/Kconfig.debug"
 
