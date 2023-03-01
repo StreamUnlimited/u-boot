@@ -2,6 +2,8 @@
 # u-Boot
 #
 
+if TARGET_RTL8730E
+
 config SYS_VENDOR
 	default "realtek"
 
@@ -13,3 +15,5 @@ config SYS_CONFIG_NAME
 
 config SYS_TEXT_BASE
 	default "0x60400000"
+
+endif
