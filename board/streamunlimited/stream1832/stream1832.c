@@ -545,6 +545,9 @@ int board_axp313_init(void)
 	/* Set power off sequence 1BH bi3 to 1 first open last off */
 	ret |= axp313_set_poweroff_first_open_last_off();
 
+	/* Set OFFLEVEL to 10s */
+	ret |= axp313_set_offlevel(1);
+
 	/*
 	 * Always cycle WIFI_VRF otherwise the chip might be in some inconsistent state
 	 *
@@ -744,6 +747,13 @@ int board_late_init(void){
 #ifdef CONFIG_AML_V2_FACTORY_BURN
 	aml_try_factory_usb_burning(0, gd->bd);
 #endif// #ifdef CONFIG_AML_V2_FACTORY_BURN
+
+	if (current_device.module_version >= 4) {
+		/* At this point NPB was already sensed for FWUP detection,
+		 * so restoring OFFLEVEL back to 6s */
+		if (axp313_set_offlevel(0))
+			printf("ERROR: failed to restore AXP313A OFFLEVEL back to 6s!\n");
+	}
 
 	return 0;
 }

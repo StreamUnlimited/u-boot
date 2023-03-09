@@ -196,6 +196,32 @@ int axp313_set_poweroff_first_open_last_off(void)
 	return axp313_write(AXP313A_PWROK_VOFF_SERT, reg);
 }
 
+/* axp313_set_offlevel, there is one input parameter long_offlevel.
+ * if the long_offlevel is true, then the OFFLEVEL of PMIC AXP313A will be set to
+ * 10s, otherwise if long_offlevel is false, the OFFLEVEL of PMIC AXP313A will be
+ * set to 6s, the OFFLEVEL can only be set to 6s or 10s according to the specification
+ * of AXP313A. It is controlled by the reg 0x1E bit 1, the default value is 6s.
+ */
+int axp313_set_offlevel(bool long_offlevel)
+{
+	u8 reg;
+	int ret = 0;
+	ret = axp313_read(AXP313A_POK_SET, &reg);
+	if (ret)
+		return ret;
+
+	if (long_offlevel)
+		reg |= (1 << 1); //set OFFLEVEL=10s reg 0x1E bit 1 = 1
+	else
+		reg &= ~(1 << 1); //set OFFLEVEL=6s reg 0x1E bit 1 = 0
+
+	ret = axp313_write(AXP313A_POK_SET, reg);
+	if (ret)
+		return ret;
+
+	return 0;
+}
+
 void amlogic_wifi_vrf_enable(void)
 {
 	int ret;
