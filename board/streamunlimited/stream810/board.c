@@ -537,6 +537,9 @@ int board_axp313_init(void)
 	/* Set power off sequence 1BH bi3 to 1 first open last off */
 	ret |= axp313_set_poweroff_sequence();
 
+	/* Set OFFLEVEL to 10s */
+	ret |= axp313_set_offlevel(1);
+
 	printf("AXP313 init done: %d\n", ret);
 
 	return ret;
@@ -581,6 +584,13 @@ int board_late_init(void)
 	setenv("secure_board", buffer);
 
 	sue_carrier_late_init(&current_device);
+
+	if (current_device.module_version >= 5) {
+		/* At this point NPB was already sensed for FWUP detection,
+		 * so restoring OFFLEVEL back to 6s */
+		if (axp313_set_offlevel(0))
+			printf("ERROR: failed to restore AXP313A OFFLEVEL back to 6s!\n");
+	}
 
 	return 0;
 }

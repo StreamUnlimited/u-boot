@@ -61,3 +61,4 @@ int axp313_set_aldo1(enum axp313_aldo_voltage aldo_val);
 int axp313_set_dldo1(enum axp313_aldo_voltage aldo_val);
 int axp313_init(unsigned char i2c_addr);
 int axp313_set_poweroff_sequence(void);
+int axp313_set_offlevel(bool long_offlevel);
