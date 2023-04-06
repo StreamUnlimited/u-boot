@@ -1509,9 +1509,21 @@ static int get_config (char *fname)
 			/* Assume the erase size is the same as the env-size */
 			DEVESIZE(i) = ENVSIZE(i);
 
-		if (rc < 5)
-			/* Assume enough env sectors to cover the environment */
+		if (rc < 5) {
+			int fd;
+
+			/* Assume enough env sectors to cover the environment by default */
 			ENVSECTORS (i) = (ENVSIZE(i) + DEVESIZE(i) - 1) / DEVESIZE(i);
+
+			/* Try to override the default by number of sectors from partition info */
+			fd = open(devname, O_RDONLY);
+			if (fd > 0) {
+				struct mtd_info_user meminfo;
+				if (ioctl(fd, MEMGETINFO, &meminfo) == 0)
+					ENVSECTORS(i) = meminfo.size / meminfo.erasesize;
+				close(fd);
+			}
+		}
 
 		i++;
 	}
