@@ -333,6 +333,19 @@ config ANDROID_BOOT_IMAGE
 	  This enables support for booting images which use the Android
 	  image format header.
 
+config ANDROID_BOOT_IMAGE_CHECK
+	bool "Enable support for Android Boot Images Check Function"
+	default n
+	select MD5
+	help
+	  This used to check the image valid, it will write the image MD5 value and header data[32Bytes] to the output terminal 
+
+config ANDROID_IMAGE_HEADER_LENGTH
+	hex "Read Android Image Header length"
+	default 0
+	help
+	  The kernel image is located after the Android image header.
+
 config FIT
 	bool "Support Flattened Image Tree"
 	select MD5

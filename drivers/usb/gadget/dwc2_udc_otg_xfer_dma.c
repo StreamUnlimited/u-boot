@@ -176,8 +176,26 @@ static int setdma_tx(struct dwc2_ep *ep, struct dwc2_request *req)
 	ctrl &= DIEPCTL_TX_FIFO_NUM_MASK;
 	ctrl |= DIEPCTL_TX_FIFO_NUM(ep->fifo_num);
 
+#if 1 //tx
+	//update nextep_seq
+	{
+		u32 ep_type;
+		/* Update nextep_seq array */
+		ep_type = ctrl & DEPCTL_TYPE_MASK;
+		if ((ep_type == DEPCTL_CTRL_TYPE || ep_type == DEPCTL_BULK_TYPE)) {//tx, usb in
+			ctrl &= ~DXEPCTL_NEXTEP_MASK;
+			ctrl |= DXEPCTL_NEXTEP(nextep_seq[ep_num]);
+			debug_cond(DEBUG_IN_EP,"%s Line %d[%d-%d-%d,%d]\n", __func__, __LINE__,
+				nextep_seq[0],nextep_seq[1],nextep_seq[1],first_in_nextep_seq);
+		}
+		else{
+			debug_cond(DEBUG_IN_EP,"%s Line %d[ctrl=0x%08x,type=%d]\n", __func__, __LINE__,ctrl,ep_type);
+		}
+	}
+#else
 	/* Clear reserved (Next EP) bits */
-	ctrl = (ctrl&~(EP_MASK<<DEPCTL_NEXT_EP_BIT));
+	ctrl = (ctrl&~(EP_MASK<<DXEPCTL_NEXTEP_SHIFT));
+#endif
 
 	writel(DEPCTL_EPENA|DEPCTL_CNAK|ctrl, &reg->in_endp[ep_num].diepctl);
 
@@ -886,7 +904,7 @@ static int dwc2_udc_get_status(struct dwc2_udc *dev,
 
 	debug_cond(DEBUG_SETUP != 0,
 		   "%s: *** USB_REQ_GET_STATUS\n", __func__);
-	printf("crq->brequest:0x%x\n", crq->bRequestType & USB_RECIP_MASK);
+
 	switch (crq->bRequestType & USB_RECIP_MASK) {
 	case USB_RECIP_INTERFACE:
 		g_status = 0;

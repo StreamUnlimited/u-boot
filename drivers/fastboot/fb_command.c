@@ -13,6 +13,18 @@
 #include <flash.h>
 #include <part.h>
 #include <stdlib.h>
+#if CONFIG_ANDROID_BOOT_IMAGE_CHECK
+#include <image.h>
+#include <mapmem.h>
+#include <u-boot/md5.h>
+
+/**
+ * image_valid_size - image valid size get from android boot image header
+ * https://android.googlesource.com/platform/system/tools/mkbootimg/+/refs/heads/master/include/bootimg/bootimg.h
+ */
+static u32 image_valid_size;
+#define IMAGE_VALID_OFFSET (8)
+#endif
 
 /**
  * image_size - final fastboot image size
@@ -194,6 +206,53 @@ u32 fastboot_data_remaining(void)
 {
 	return fastboot_bytes_expected - fastboot_bytes_received;
 }
+#if  CONFIG_ANDROID_BOOT_IMAGE_CHECK
+/**
+ * fastboot_parse_image_header() - parse the image header
+ *
+ * Return:null
+ */
+static void fastboot_parse_image_header(const void *fastboot_data,unsigned int fastboot_data_len)
+{
+	(void)fastboot_data_len;
+	u8 *buf_addr = (char *)fastboot_data;
+	image_valid_size = buf_addr[IMAGE_VALID_OFFSET+3]*0x1000000
+		+ buf_addr[IMAGE_VALID_OFFSET+2]*0x10000
+		+ buf_addr[IMAGE_VALID_OFFSET+1]*0x100
+		+ buf_addr[IMAGE_VALID_OFFSET+0]*0x01;
+	printf("image valid size =%d\n",image_valid_size);
+}
+/**
+ * fastboot_image_md5check() - add md5 check for the image buffer
+ *
+ * Return: null
+ */
+static void fastboot_image_md5check(void)
+{
+	void *buf;
+	u8	output[16];
+	u8 i;
+	u32 len = image_valid_size ;
+	char *debug_buf_addr = (char *)fastboot_buf_addr;
+	buf = map_sysmem(debug_buf_addr, len);
+	md5_wd(buf, len, output, CHUNKSZ_MD5);
+	unmap_sysmem(buf);
+
+	printf("md5 for %08lx ... %08lx ==> ", debug_buf_addr, debug_buf_addr + len - 1);
+	for (i = 0; i < 16; i++)
+		printf("%02x", output[i]);
+	printf("\n");
+
+	if(len > 32) len =32;
+	for(i =0; i<len ; i++)
+	{
+		printf("0x%02x ", debug_buf_addr[i]);
+		if((i+1)%16 == 0)
+			printf("\n");
+	}
+	printf("\n\n\n");
+}
+#endif
 
 /**
  * fastboot_data_download() - Copy image data to fastboot_buf_addr.
@@ -224,8 +283,23 @@ void fastboot_data_download(const void *fastboot_data,
 		return;
 	}
 	/* Download data to fastboot_buf_addr */
-	memcpy(fastboot_buf_addr + fastboot_bytes_received,
-	       fastboot_data, fastboot_data_len);
+	if (fastboot_bytes_received <= CONFIG_ANDROID_IMAGE_HEADER_LENGTH 
+		&& fastboot_bytes_received+fastboot_data_len > CONFIG_ANDROID_IMAGE_HEADER_LENGTH )
+	{
+		u32 validoffset = CONFIG_ANDROID_IMAGE_HEADER_LENGTH - fastboot_bytes_received;
+		u32 validlength = fastboot_bytes_received+fastboot_data_len-CONFIG_ANDROID_IMAGE_HEADER_LENGTH;
+		memcpy(fastboot_buf_addr ,
+		       fastboot_data + validoffset, validlength);
+	} else if(fastboot_bytes_received > CONFIG_ANDROID_IMAGE_HEADER_LENGTH) {
+		memcpy(fastboot_buf_addr + fastboot_bytes_received-CONFIG_ANDROID_IMAGE_HEADER_LENGTH,
+		       fastboot_data, fastboot_data_len);
+	}
+
+#if  CONFIG_ANDROID_BOOT_IMAGE_CHECK
+	if(0 ==fastboot_bytes_received && fastboot_data_len >= IMAGE_VALID_OFFSET+4) {
+		fastboot_parse_image_header(fastboot_data,fastboot_data_len);
+	}
+#endif
 
 	pre_dot_num = fastboot_bytes_received / BYTES_PER_DOT;
 	fastboot_bytes_received += fastboot_data_len;
@@ -255,6 +329,10 @@ void fastboot_data_complete(char *response)
 	env_set_hex("filesize", image_size);
 	fastboot_bytes_expected = 0;
 	fastboot_bytes_received = 0;
+
+#if  CONFIG_ANDROID_BOOT_IMAGE_CHECK
+	fastboot_image_md5check();
+#endif
 }
 
 #if CONFIG_IS_ENABLED(FASTBOOT_FLASH)

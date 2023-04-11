@@ -33,11 +33,22 @@
  * System control registers
  *****************************************************************************************
  */
-#define OTPC_REG_BASE			0x42000000
-#define SYSTEM_CTRL_BASE_LP		0x42008000
-#define REG_LSYS_OTP_SYSCFG0	0x0230
-#define REG_LSYS_SYSTEM_CFG0	0x027C
-#define SEC_OTP_SYSCFG0			0x0100
+#define OTPC_REG_BASE					0x42000000
+#define SYSTEM_CTRL_BASE_LP				0x42008000
+#define REG_LSYS_OTP_SYSCFG0			0x0230
+#define REG_LSYS_SCAN_CTRL				0x0274
+#define REG_LSYS_SYSTEM_CFG0			0x027C
+#define SEC_OTP_SYSCFG0					0x0100
+
+#define SYSCFG_OTP_BOOTNOR				2
+#define SYSCFG_OTP_BOOTNAND				1
+
+#define LSYS_GET_BOOT_SELECT(x)			((u32)(((x >> 20) & 0x00000003)))
+#define LSYS_GET_PTRP_BOOTSEL(x)		((u32)(((x >> 20) & 0x00000001)))
+
+#define LSYS_MASK_CHIP_INFO_EN			((u32)0x0000000F << 28)
+#define LSYS_CHIP_INFO_EN(x)			((u32)((x) & 0x0000000F) << 28)
+#define LSYS_GET_RL_VER(x)				((u32)(((x >> 16) & 0x0000000F)))
 
 /*
  *****************************************************************************************

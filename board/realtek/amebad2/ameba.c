@@ -11,16 +11,34 @@
 #include <asm/global_data.h>
 #include <netdev.h>
 #include <dm.h>
+#include <cpu_func.h>
+#include <linux/compat.h>
 
 #include "bspchip.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#define SYSCFG_OTP_BOOTNOR				2
-#define SYSCFG_OTP_BOOTNAND				1
+int rtk_misc_get_rl_version(void)
+{
+	u32 value;
+	u32 value32;
+	u32 reg = SYSTEM_CTRL_BASE_LP + REG_LSYS_SCAN_CTRL;
 
-#define LSYS_GET_BOOT_SELECT(x)			((u32)(((x >> 20) & 0x00000003)))
-#define LSYS_GET_PTRP_BOOTSEL(x)		((u32)(((x >> 20) & 0x00000001)))
+	/* Set LSYS_CHIP_INFO_EN register to get ChipInfo */
+	value = REG32(reg);
+	value &= ~(LSYS_MASK_CHIP_INFO_EN);
+	value |= LSYS_CHIP_INFO_EN(0xA);
+	REG32(reg) = value;
+
+	/* Clear LSYS_CHIP_INFO_EN register */
+	value32 = REG32(reg);
+	value &= ~(LSYS_MASK_CHIP_INFO_EN);
+	REG32(reg) = value;
+
+	return (int)(LSYS_GET_RL_VER(value32));
+}
+
+EXPORT_SYMBOL(rtk_misc_get_rl_version);
 
 static int syscfg_get_otp_boot_select(void)
 {
@@ -88,8 +106,12 @@ int dram_init_banksize(void)
 int checkboard(void)
 {
 	int is_boot_from_nor;
+	int rl_ver;
 
 	printf("\nAmeba Platform -- ARM Cortex-A\n");
+
+	rl_ver = rtk_misc_get_rl_version();
+	printf("SoC RL version: %d\n", rl_ver);
 
 	is_boot_from_nor = syscfg_is_boot_from_nor();
 	if (is_boot_from_nor) {

@@ -23,6 +23,9 @@
 #include <linux/delay.h>
 #include <power/regulator.h>
 #include <reset.h>
+#ifdef CONFIG_USB_RTK_AMEBA_USB20PHY
+#include <realtek/usb_phy.h>
+#endif
 
 #include "dwc2.h"
 
@@ -247,6 +250,9 @@ static void dwc_otg_core_host_init(struct udevice *dev,
 	uint32_t ptxfifosize = 0;
 	uint32_t hprt0 = 0;
 	int i, ret, num_channels;
+#ifdef CONFIG_USB_RTK_AMEBA_USB20PHY
+	struct dwc2_priv *priv = dev_get_priv(dev);
+#endif
 
 	/* Restart the Phy Clock */
 	writel(0, &regs->pcgcctl);
@@ -308,6 +314,14 @@ static void dwc_otg_core_host_init(struct udevice *dev,
 		if (ret)
 			dev_info("%s: Timeout!\n", __func__);
 	}
+
+#ifdef CONFIG_USB_RTK_AMEBA_USB20PHY
+	ret = rtk_phy_calibrate(&priv->phy, (uintptr_t)regs);
+	if (ret) {
+		pr_err("[USBH] PHY calibration fail\n");
+		return ret;
+	}
+#endif
 
 	/* Turn on the vbus power. */
 	if (readl(&regs->gintsts) & DWC2_GINTSTS_CURMODE_HOST) {

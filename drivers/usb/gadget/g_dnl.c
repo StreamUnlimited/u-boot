@@ -248,7 +248,7 @@ static int g_dnl_bind(struct usb_composite_dev *cdev)
 	device_desc.iProduct = id;
 
 	g_dnl_bind_fixup(&device_desc, cdev->driver->name);
-
+	g_dnl_set_serialnumber((char *)"0123456789AB");
 	if (strlen(g_dnl_serial)) {
 		id = usb_string_id(cdev);
 		if (id < 0)

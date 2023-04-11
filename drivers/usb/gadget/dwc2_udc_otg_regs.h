@@ -20,27 +20,27 @@ struct dwc2_usbotg_phy {
 
 /* Device Logical IN Endpoint-Specific Registers */
 struct dwc2_dev_in_endp {
-	u32 diepctl;
-	u8  res1[4];
-	u32 diepint;
-	u8  res2[4];
-	u32 dieptsiz;
-	u32 diepdma;
-	u8  res3[4];
-	u32 diepdmab;
-};
+	u32 diepctl;	//900+0
+	u8  res1[4];	//900+4
+	u32 diepint;	//900+8
+	u8  res2[4];	//900+C
+	u32 dieptsiz;	//900+10
+	u32 diepdma;	//900+14
+	u8  res3[4];	//900+18
+	u32 diepdmab;	//900+1C
+};//size 20h
 
 /* Device Logical OUT Endpoint-Specific Registers */
 struct dwc2_dev_out_endp {
-	u32 doepctl;
-	u8  res1[4];
-	u32 doepint;
-	u8  res2[4];
-	u32 doeptsiz;
-	u32 doepdma;
-	u8  res3[4];
-	u32 doepdmab;
-};
+	u32 doepctl;	//B00+0
+	u8  res1[4];	//B00+4
+	u32 doepint;	//B00+8
+	u8  res2[4];	//B00+C
+	u32 doeptsiz;	//B00+10
+	u32 doepdma;	//B00+14
+	u8  res3[4];	//B00+18
+	u32 doepdmab;	//B00+1C
+};//size 20h
 
 struct ep_fifo {
 	u32 fifo;
@@ -64,19 +64,19 @@ struct dwc2_usbotg_reg {
 	u8  res0[12];
 	u32 ggpio;     /* 0x038 */
 	u8  res1[20];
-	u32 ghwcfg4; /* User HW Config4 */
+	u32 ghwcfg4; /* User HW Config4  0x50 */
 	u8  res2[176];
-	u32 dieptxf[15]; /* Device Periodic Transmit FIFO size register */
+	u32 dieptxf[15]; /* Device Periodic Transmit FIFO size register 0x104 */
 	u8  res3[1728];
 	/* Device Configuration */
-	u32 dcfg; /* Device Configuration Register */
+	u32 dcfg; /* Device Configuration Register 0x800 */
 	u32 dctl; /* Device Control */
 	u32 dsts; /* Device Status */
 	u8  res4[4];
-	u32 diepmsk; /* Device IN Endpoint Common Interrupt Mask */
-	u32 doepmsk; /* Device OUT Endpoint Common Interrupt Mask */
-	u32 daint; /* Device All Endpoints Interrupt */
-	u32 daintmsk; /* Device All Endpoints Interrupt Mask */
+	u32 diepmsk; /* Device IN Endpoint Common Interrupt Mask 0x810 */
+	u32 doepmsk; /* Device OUT Endpoint Common Interrupt Mask 0x814 */
+	u32 daint; /* Device All Endpoints Interrupt 0x818 */
+	u32 daintmsk; /* Device All Endpoints Interrupt Mask 0x81C */
 	u8  res5[224];
 	struct dwc2_dev_in_endp in_endp[16];
 	struct dwc2_dev_out_endp out_endp[16];
@@ -189,7 +189,10 @@ struct dwc2_usbotg_reg {
 #define DEPCTL_BULK_TYPE		(0x2<<18)
 #define DEPCTL_INTR_TYPE		(0x3<<18)
 #define DEPCTL_USBACTEP		(0x1<<15)
-#define DEPCTL_NEXT_EP_BIT		(11)
+#define DXEPCTL_NEXTEP_MASK		(0xf << 11)
+#define DXEPCTL_NEXTEP_SHIFT		11
+#define DXEPCTL_NEXTEP_LIMIT		0xf
+#define DXEPCTL_NEXTEP(_x)		((_x) << 11)
 #define DEPCTL_MPS_BIT			(0)
 #define DEPCTL_MPS_MASK		(0x7FF)
 
@@ -249,11 +252,16 @@ struct dwc2_usbotg_reg {
 #define DEV_SPEED_LOW_SPEED_11          (0x2 << 0)
 #define DEV_SPEED_FULL_SPEED_11         (0x3 << 0)
 #define EP_MISS_CNT(x)                  (x << 18)
+#define DCFG_EPMISCNT_MASK		        (0x1f << 18)
+#define DCFG_EPMISCNT_SHIFT		        18
+#define DCFG_EPMISCNT_LIMIT		        0x1f
+#define DCFG_EPMISCNT(_x)		        ((_x) << 18)
 #define DEVICE_ADDRESS(x)               (x << 4)
 
 /* Core Reset Register (GRSTCTL) */
 #define TX_FIFO_FLUSH                   (0x1 << 5)
 #define RX_FIFO_FLUSH                   (0x1 << 4)
+#define GRSTCTL_IN_TKNQ_FLSH            BIT(3)
 #define TX_FIFO_NUMBER(x)               (x << 6)
 #define TX_FIFO_FLUSH_ALL               TX_FIFO_NUMBER(0x10)
 

@@ -72,6 +72,7 @@ struct dwc2_request {
 };
 
 struct dwc2_udc {
+	struct udevice *udev;
 	struct usb_gadget gadget;
 	struct usb_gadget_driver *driver;
 

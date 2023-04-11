@@ -45,6 +45,10 @@
 
 #include <power/regulator.h>
 
+#ifdef CONFIG_USB_RTK_AMEBA_USB20PHY
+#include <realtek/usb_phy.h>
+#endif
+
 #include "dwc2_udc_otg_regs.h"
 #include "dwc2_udc_otg_priv.h"
 
@@ -62,6 +66,15 @@
 
 #define EP0_CON		0
 #define EP_MASK		0xF
+
+#if CONFIG_IS_ENABLED(DM_USB_GADGET)
+struct dwc2_priv_data {
+	struct clk_bulk		clks;
+	struct reset_ctl_bulk	resets;
+	struct phy_bulk phys;
+	struct udevice *usb33d_supply;
+};
+#endif
 
 static char *state_names[] = {
 	"WAIT_FOR_SETUP",
@@ -94,6 +107,9 @@ static dma_addr_t usb_ctrl_dma_addr;
 /*
   Local declarations.
 */
+static unsigned char nextep_seq[DWC2_MAX_ENDPOINTS];
+static unsigned char first_in_nextep_seq;
+
 static int dwc2_ep_enable(struct usb_ep *ep,
 			 const struct usb_endpoint_descriptor *);
 static int dwc2_ep_disable(struct usb_ep *ep);
@@ -464,6 +480,13 @@ static void reconfig_usbd(struct dwc2_udc *dev)
 	uint32_t rx_fifo_sz, tx_fifo_sz, np_tx_fifo_sz;
 	u32 max_hw_ep;
 	int pdata_hw_ep;
+	u32 diepctl;
+	u32 rstctl;
+#ifdef CONFIG_USB_RTK_AMEBA_USB20PHY
+	int ret;
+	struct dwc2_plat_otg_data *platdata = dev->pdata;
+	struct dwc2_priv_data *priv = dev_get_priv(dev->udev);
+#endif
 
 	debug("Reseting OTG controller\n");
 
@@ -493,7 +516,18 @@ static void reconfig_usbd(struct dwc2_udc *dev)
 	uTemp |= SOFT_DISCONNECT;
 	writel(uTemp, &reg->dctl);
 
+#ifdef CONFIG_USB_RTK_AMEBA_USB20PHY
+	mdelay(3);
+	for (i=0; i<priv->phys.count; i++) {
+		ret = rtk_phy_calibrate(priv->phys.phys + i, platdata->regs_otg);
+		if (ret != 0) {
+			pr_err("[USBD] PHY calibration fail\n");
+			return;
+		}
+	}
+#else
 	udelay(20);
+#endif
 
 	/* 4. Make the OTG device core exit from the disconnected state.*/
 	uTemp = readl(&reg->dctl);
@@ -510,13 +544,20 @@ static void reconfig_usbd(struct dwc2_udc *dev)
 	writel(GINTMSK_INIT, &reg->gintmsk);
 
 	/* 7. Set NAK bit of EP0, EP1, EP2*/
+	//init NextEp
+	diepctl = readl(&reg->in_endp[EP0_CON].diepctl);
+	diepctl &= ~DXEPCTL_NEXTEP_MASK;
 	writel(DEPCTL_EPDIS|DEPCTL_SNAK, &reg->out_endp[EP0_CON].doepctl);
-	writel(DEPCTL_EPDIS|DEPCTL_SNAK, &reg->in_endp[EP0_CON].diepctl);
+	writel(DEPCTL_EPDIS|DEPCTL_SNAK|diepctl, &reg->in_endp[EP0_CON].diepctl);
 
 	for (i = 1; i < DWC2_MAX_ENDPOINTS; i++) {
 		writel(DEPCTL_EPDIS|DEPCTL_SNAK, &reg->out_endp[i].doepctl);
 		writel(DEPCTL_EPDIS|DEPCTL_SNAK, &reg->in_endp[i].diepctl);
+
+		nextep_seq[i] = 0xff;  // 0xff - EP not active
 	}
+	nextep_seq[0] = 0;
+	first_in_nextep_seq = 0;
 
 	/* 8. Unmask EPO interrupts*/
 	writel(((1 << EP0_CON) << DAINT_OUT_BIT)
@@ -563,6 +604,12 @@ static void reconfig_usbd(struct dwc2_udc *dev)
 		writel((rx_fifo_sz + np_tx_fifo_sz + (tx_fifo_sz * i)) |
 			tx_fifo_sz << 16, &reg->dieptxf[i]);
 	}
+
+	/* Flush the Learning Queue. */
+	rstctl = readl(&reg->grstctl);
+	rstctl |= GRSTCTL_IN_TKNQ_FLSH;
+	writel(rstctl, &reg->grstctl);	
+
 	/* Flush the RX FIFO */
 	writel(RX_FIFO_FLUSH, &reg->grstctl);
 	while (readl(&reg->grstctl) & RX_FIFO_FLUSH)
@@ -850,7 +897,7 @@ static struct dwc2_udc memory = {
 		.bmAttributes = USB_ENDPOINT_XFER_BULK,
 
 		.ep_type = ep_bulk_out,
-		.fifo_num = 1,
+		.fifo_num = 0,
 	},
 
 	.ep[2] = {
@@ -865,7 +912,7 @@ static struct dwc2_udc memory = {
 		.bmAttributes = USB_ENDPOINT_XFER_BULK,
 
 		.ep_type = ep_bulk_in,
-		.fifo_num = 2,
+		.fifo_num = 0,
 	},
 
 	.ep[3] = {
@@ -880,7 +927,7 @@ static struct dwc2_udc memory = {
 		.bmAttributes = USB_ENDPOINT_XFER_INT,
 
 		.ep_type = ep_interrupt,
-		.fifo_num = 3,
+		.fifo_num = 0,
 	},
 };
 
@@ -942,13 +989,6 @@ int usb_gadget_handle_interrupts(int index)
 }
 
 #else /* CONFIG_IS_ENABLED(DM_USB_GADGET) */
-
-struct dwc2_priv_data {
-	struct clk_bulk		clks;
-	struct reset_ctl_bulk	resets;
-	struct phy_bulk phys;
-	struct udevice *usb33d_supply;
-};
 
 int dm_usb_gadget_handle_interrupts(struct udevice *dev)
 {
@@ -1136,6 +1176,7 @@ static int dwc2_udc_otg_probe(struct udevice *dev)
 		return ret;
 
 	the_controller->driver = 0;
+	the_controller->udev = dev;
 
 	ret = usb_add_gadget_udc((struct device *)dev, &the_controller->gadget);
 
@@ -1158,6 +1199,8 @@ static int dwc2_udc_otg_remove(struct udevice *dev)
 }
 
 static const struct udevice_id dwc2_udc_otg_ids[] = {
+	{ .compatible = "realtek,dwc-fastboot" ,
+	  .data = (ulong)dwc2_set_stm32mp1_hsotg_params },
 	{ .compatible = "snps,dwc2" },
 	{ .compatible = "brcm,bcm2835-usb" },
 	{ .compatible = "st,stm32mp1-hsotg",
