@@ -115,10 +115,10 @@
 #define CONFIG_SYS_BOOTPARAMS_LEN	(32 << 10)
 #define CONFIG_SYS_HZ_CLOCK		27000000
 
-#define CONFIG_SYS_SDRAM_BASE		0x60300000     /* Cached addr, should be 1MB-aligned */
+#define CONFIG_SYS_SDRAM_BASE		0x60800000     /* Cached addr, should be 1MB-aligned */
 
-#define CONFIG_SYS_INIT_SP_ADDR		0x604c0000     /* stack */
-#define CONFIG_SYS_LOAD_ADDR		0x60300000     /* default load address */
+#define CONFIG_SYS_INIT_SP_ADDR		0x609c0000     /* stack */
+#define CONFIG_SYS_LOAD_ADDR		0x60800000     /* default load address */
 
 #define CONFIG_SYS_MEMTEST_START	//0x60200000
 #define CONFIG_SYS_MEMTEST_END		//0x60230000
