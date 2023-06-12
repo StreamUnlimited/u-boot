@@ -17,7 +17,7 @@
 #include <../lib/libavb/libavb.h>
 #include <../lib/libavb/avb_sha.h>
 
-#define	CERT_VBMETA_PK_HASH_OFFSET		0x120
+#define	CERT_VBMETA_PK_HASH_OFFSET		0xd8
 #define VBMETA_ROLLBACK_INDEX_OFFSET		0x70
 #define ROLLBACK_INDEX_BYTES			8
 #define EFUSE_ROLLBACK_INDEX_OFFSET		0x390
