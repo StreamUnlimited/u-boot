@@ -15,6 +15,7 @@
 #include <spl.h>
 #include <asm/mach-imx/hab.h>
 #include <asm/mach-imx/boot_mode.h>
+#include <asm/sections.h>
 #include <g_dnl.h>
 
 /* SUE customization */
@@ -291,6 +292,9 @@ ulong board_spl_fit_size_align(ulong size)
 	size = ALIGN(size, ALIGN_SIZE);
 	size += CONFIG_CSF_SIZE;
 
+	if (size > CONFIG_SYS_BOOTM_LEN)
+		panic("spl: ERROR: image too big\n");
+
 	return size;
 }
 
@@ -334,6 +338,50 @@ int dram_init_banksize(void)
 }
 #endif
 
+static void dump_hash(u8* hash, unsigned long size) {
+	int i;
+	for (i = 0; i < size; i++)
+		printf("%x", hash[i]);
+	printf("\n");
+}
+
+#if IS_ENABLED(CONFIG_SPL_LOAD_FIT)
+static int spl_verify_fit_hash(const void *fit)
+{
+	unsigned long size;
+	u8 value[SHA256_SUM_LEN];
+	int value_len;
+	ulong fit_hash;
+
+#if CONFIG_IS_ENABLED(OF_CONTROL)
+	if (gd->fdt_blob && !fdt_check_header(gd->fdt_blob)) {
+		fit_hash = roundup((unsigned long)&_end +
+				     fdt_totalsize(gd->fdt_blob), 4) + 0x18000;
+	}
+#else
+	fit_hash = (unsigned long)&_end + 0x18000;
+#endif
+
+	size = fdt_totalsize(fit);
+
+	if (calculate_hash(fit, size, "sha256", value, &value_len)) {
+		printf("Unsupported hash algorithm\n");
+		return -1;
+	}
+
+	if (value_len != SHA256_SUM_LEN) {
+		printf("Bad hash value len\n");
+		return -1;
+	} else if (memcmp(value, (const void *)fit_hash, value_len) != 0) {
+		printf("Bad hash value\n");
+		printf("Actual: "); dump_hash(value, value_len);
+		printf("Expected: "); dump_hash((const void *)fit_hash, value_len);
+		return -1;
+	}
+
+	return 0;
+}
+
 /*
  * read the address where the IVT header must sit
  * from IVT image header, loaded from SPL into
@@ -347,6 +395,27 @@ void *spl_load_simple_fit_fix_load(const void *fit)
 	unsigned long offset;
 	unsigned long size;
 	u8 *tmp = (u8 *)fit;
+
+	int ret = spl_verify_fit_hash(fit);
+	if (ret && imx_hab_is_enabled())
+		panic("spl: ERROR:  FIT hash verify unsuccessful\n");
+	if(ret) {
+		printf("***********************************************\n");
+		printf("** WARN WARN WARN WARN WARN WARN WARN        **\n");
+		printf("**                                           **\n");
+		printf("** spl: ERROR: FIT hash verify unsuccessful  **\n");
+		printf("** booting will continue because             **\n");
+		printf("** HAB fuses are not locked                  **\n");
+		printf("**                                           **\n");
+		printf("** make sure this is fixed before            **\n");
+		printf("** locking the module, failure to do         **\n");
+		printf("** so will result in a bricked module        **\n");
+		printf("**                                           **\n");
+		printf("** WARN WARN WARN WARN WARN WARN WARN        **\n");
+		printf("***********************************************\n");
+	} else {
+		printf("spl: FIT hash verify ok\n");
+	}
 
 	offset = ALIGN(fdt_totalsize(fit), 0x1000);
 	size = ALIGN(fdt_totalsize(fit), 4);
@@ -366,3 +435,4 @@ void *spl_load_simple_fit_fix_load(const void *fit)
 
 	return (void *)new;
 }
+#endif
