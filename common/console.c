@@ -21,6 +21,10 @@
 #include <watchdog.h>
 #include <linux/delay.h>
 
+#if CONFIG_IS_ENABLED(SUE_SECURE_BOOT)
+#include <sue_secureboot.h>
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 static int on_console(const char *name, const char *value, enum env_op op,
@@ -884,6 +888,14 @@ int console_init_r(void)
 		/* need to set a console if not done above. */
 		console_doenv(stderr, errdev);
 	}
+
+#if CONFIG_IS_ENABLED(SUE_SECURE_BOOT)
+	if (is_sue_secureboot()) {
+		printf("Secure boot is enabled, input device will be disabled\n");
+		inputdev = search_device(DEV_FLAGS_INPUT, "nulldev");
+	}
+#endif
+
 	if (inputdev != NULL) {
 		/* need to set a console if not done above. */
 		console_doenv(stdin, inputdev);
@@ -973,6 +985,13 @@ int console_init_r(void)
 		console_devices[stderr][0] = outputdev;
 #endif
 	}
+
+#if CONFIG_IS_ENABLED(SUE_SECURE_BOOT)
+	if (is_sue_secureboot()) {
+		printf("Secure boot is enabled, input device will be disabled\n");
+		inputdev = search_device(DEV_FLAGS_INPUT, "nulldev");
+	}
+#endif
 
 	/* Initializes input console */
 	if (inputdev != NULL) {
