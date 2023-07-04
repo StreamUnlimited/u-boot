@@ -179,10 +179,15 @@ int board_late_init(void)
 	// we might do module detection if really needed
 	env_set("module_config", "stream210_l0");
 
-	if (is_sue_secureboot())
+	if (is_sue_secureboot()) {
 		env_set_ulong("secure_board", 1);
-	else
+
+		// On a locked module it makes not sense to have a boot
+		// delay so set it to zero to save 2 seconds of boot time.
+		env_set_ulong("bootdelay", 0);
+	} else {
 		env_set_ulong("secure_board", 0);
+	}
 
 
 	if (check_boot_factory() && !is_sue_secureboot()) {
