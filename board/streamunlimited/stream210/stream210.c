@@ -60,6 +60,27 @@ bool is_sue_secureboot(void)
 	return false;
 }
 
+int get_fuse_baudrate(void)
+{
+	u32 reg = 0;
+
+	reg = REG32(OTPC_REG_BASE + SEC_OTP_SYSCFG0);
+	if (reg & SEC_BIT_LOW_BAUD_LOG_EN) {
+		return 115200;
+	}
+
+	return 1500000;
+}
+
+void update_baudrate(int baudrate)
+{
+	env_set_ulong("baudrate", baudrate);
+
+	// Set gd->baudrate to have consistent output in the `bdinfo` command, it has no
+	// other side effects for now.
+	gd->baudrate = baudrate;
+}
+
 int board_init(void)
 {
 	return 0;
@@ -189,8 +210,11 @@ int board_late_init(void)
 		env_set_ulong("secure_board", 0);
 	}
 
-
 	if (check_boot_factory() && !is_sue_secureboot()) {
+		// In factory mode, the baudrate is always 1500000 irrespective
+		// of the fuse setting.
+		update_baudrate(1500000);
+
 		// Set the USB port to device mode as we will most likely run
 		// fastboot.
 		board_usb_init(0, USB_INIT_DEVICE);
@@ -198,6 +222,13 @@ int board_late_init(void)
 		printf("Factory magic flag set, starting factory command: %s\n", FACTORY_FLAG_COMMAND);
 		run_command(FACTORY_FLAG_COMMAND, 0);
 	}
+
+	// Set the baudrate based on fuse setting. The previous bootloader stage
+	// (ROM/KM4 bootloader) will already have initialized the serial based on
+	// the setting from the fuses. We are only setting the baudrate environment
+	// variable so that the same value is passed to the kernel.
+	update_baudrate(get_fuse_baudrate());
+
 
 	// Set the USB port (back) to host mode. If we were in fastboot mode then most
 	// of the time we don't arrive here under normal circumstances. We only arrive
