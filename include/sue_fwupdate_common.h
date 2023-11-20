@@ -63,7 +63,7 @@
         "echo \"INFO: resetting...\"; " \
         "reset;\0" \
 \
-    "kernel_common_args=setenv bootargs console=ttyS0,1500000 earlycon psci=enable; " \
+    "kernel_common_args=setenv bootargs console=ttyS0,${baudrate} earlycon psci=enable; " \
         "if test \"${secure_board}\" = 1; " \
             "then " \
             "echo \"INFO: board is locked, booting to runlevel 3\"; " \
