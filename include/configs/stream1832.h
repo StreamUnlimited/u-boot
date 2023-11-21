@@ -228,9 +228,12 @@
 	"bmfg="\
 		"if test ${module_version} -lt 4; then "\
 			"bootm ${loadaddr}#default_factory@1; " \
-		"else " \
+		"elif test ${module_version} -eq 4; then " \
 			"bootm ${loadaddr}#default_l4_factory@1; " \
 			"bootm ${loadaddr}#default_l4@1; " \
+		"else " \
+			"bootm ${loadaddr}#default_l5_factory@1; " \
+			"bootm ${loadaddr}#default_l5@1; " \
 		"fi;" \
 		"bootm ${loadaddr};\0" \
 	SUE_FWUPDATE_EXTRA_ENV_SETTINGS

@@ -79,6 +79,7 @@ static const struct module_map_entry module_map[] = {
 	{ SUE_MODULE_S1832, 4, 0x05 }, //Stream1832A L4(L0-AXP313A) 4.4W MP
 	{ SUE_MODULE_S1832, 4, 0x06 }, //Stream1832A L4(L0-AXP313A) 2.2W
 	{ SUE_MODULE_S1832, 4, 0x07 }, //Stream1832A L4(L0-AXP313A) 2.2W MP
+	{ SUE_MODULE_S1832, 5, 0x0B }, //Stream1832AE L5(L0-S1832AE) 4.4W
 };
 
 /*
