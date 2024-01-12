@@ -1,8 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
- * Realtek Semiconductor Corp.
- *
- * Device Tree Structure
- */
+* Realtek DTS for RTL8730E NOR flash chips
+*
+* Copyright (C) 2023, Realtek Corporation. All rights reserved.
+*/
 
 /dts-v1/;
 
@@ -34,7 +35,7 @@
 		};
 
 		loguart: dwapb@4200c000 {
-			compatible = "realtek,ameba_serial";
+			compatible = "realtek,amebad2-loguart";
 			reg = <0x4200c000 0x100>;
 			reg-shift = <2>;
 			reg-io-width = <1>;
@@ -42,7 +43,7 @@
 		};
 
 		otp: otp@0 {
-			compatible = "realtek,ameba-otp";
+			compatible = "realtek,amebad2-otp";
 			reg = <AIPC_SHARED_MEM_ADDR AIPC_SHARED_MEM_SIZE>, // res 0
 				<AIPC_REG_TX_DATA AIPC_REG_SIZE>, // res 1
 				<AIPC_REG_RX_DATA AIPC_REG_SIZE>, // res 2
@@ -52,7 +53,7 @@
 		};
 
 		spic: spi@44000000 {
-			compatible = "realtek,rxi312-spi";
+			compatible = "realtek,rxi312";
 			#address-cells = <1>;
 			#size-cells = <0>;
 			bus_num = <2>;
@@ -77,7 +78,7 @@
 		};
 
 		usb_phy: usb-phy@41000000 {
-			compatible = "realtek,otg-phy";
+			compatible = "realtek,amebad2-otg-phy";
 			reg = <0x400B0000 0x20>,
 				<0x41000060 4>,
 				<0x42008000 0x400>;

@@ -1,161 +1,114 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
- * Ameba SPI controller driver
- *
- * Author: Realtek PSP Group
- *
- * Copyright 2015, Realtek Semiconductor Corp.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- */
+* Realtek RXI312 SPIC support
+*
+* Copyright (C) 2023, Realtek Corporation. All rights reserved.
+*/
 
 #ifndef _SPI_RXI312_H
 #define _SPI_RXI312_H
-
-#ifndef _DW_COMMON_H
-#define _DW_COMMON_H
-
-/* SPIC config */
-#define ps_CC_SPI_FLASH_NUM_SLAVES            1
-#define ps_CC_SPI_FLASH_TX_FIFO_DEPTH         0x20
-#define ps_CC_SPI_FLASH_RX_FIFO_DEPTH         0x20
-#define ps_CC_SPI_FLASH_ID                    0x0
-#define ps_CC_SPI_FLASH_DFLT_SCPOL            0x0
-#define ps_CC_SPI_FLASH_DFLT_SCPH             0x0
-#define ps_CC_SPI_FLASH_CLK_PERIOD            400
-#define ps_CC_SPI_FLASH_VERSION_ID            0x0
-
-#endif
 
 /*
  * NOR Flash opcodes
  */
 
 /* General flash opcode. */
-#define FLASH_CMD_WREN			0x06            //write enable
-#define FLASH_CMD_WRDI			0x04            //write disable
-#define FLASH_CMD_WRSR			0x01            //write status register
-#define FLASH_CMD_RDID			0x9F            //read idenfication
-#define FLASH_CMD_RDSR			0x05            //read status register
-#define FLASH_CMD_RDSR2			0x35            //read status register-2
-#define FLASH_CMD_READ			0x03            //read data
-#define FLASH_CMD_FREAD			0x0B            //fast read data
-#define FLASH_CMD_RDSFDP		0x5A            //Read SFDP
-#define FLASH_CMD_RES			0xAB            //Read Electronic ID
-#define FLASH_CMD_REMS			0x90            //Read Electronic Manufacturer & Device ID
-#define FLASH_CMD_DREAD			0x3B            //Double Output Mode command
-#define FLASH_CMD_SE				0x20            //Sector Erase
-#define FLASH_CMD_BE				0xD8            //0x52 //64K Block Erase
-#define FLASH_CMD_CE				0x60            //Chip Erase(or 0xC7)
-#define FLASH_CMD_PP				0x02            //Page Program
-#define FLASH_CMD_DP				0xB9            //Deep Power Down
-#define FLASH_CMD_RDP			0xAB            //Release from Deep Power-Down
-#define FLASH_CMD_2READ			0xBB            // 2 x I/O read  command
-#define FLASH_CMD_4READ			0xEB            // 4 x I/O read  command
-#define FLASH_CMD_QREAD			0x6B            // 1I / 4O read command
-#define FLASH_CMD_4PP			0x32            //quad page program //this is diff with MXIC
-#define FLASH_CMD_FF				0xFF            //Release Read Enhanced
-#define FLASH_CMD_REMS2			0x92            // read ID for 2x I/O mode //this is diff with MXIC
-#define FLASH_CMD_REMS4			0x94            // read ID for 4x I/O mode //this is diff with MXIC
-#define FLASH_CMD_RDSCUR		0x48            // read security register //this is diff with MXIC
-#define FLASH_CMD_WRSCUR		0x42            // write security register //this is diff with MXIC
+#define FLASH_CMD_WREN				0x06 /* Write enable */
+#define FLASH_CMD_WRDI				0x04 /* Write disable */
+#define FLASH_CMD_WRSR				0x01 /* Write status register */
+#define FLASH_CMD_RDID				0x9F /* Read idenfication */
+#define FLASH_CMD_RDSR				0x05 /* Read status register */
+#define FLASH_CMD_RDSR2				0x35 /* Read status register-2 */
+#define FLASH_CMD_READ				0x03 /* Read data */
+#define FLASH_CMD_FREAD				0x0B /* Fast read data */
+#define FLASH_CMD_RDSFDP			0x5A /* Read SFDP */
+#define FLASH_CMD_RES				0xAB /* Read Electronic ID */
+#define FLASH_CMD_REMS				0x90 /* Read Electronic Manufacturer & Device ID */
+#define FLASH_CMD_DREAD				0x3B /* Double Output Mode command */
+#define FLASH_CMD_SE				0x20 /* Sector Erase */
+#define FLASH_CMD_BE				0xD8 /* 0x52 //64K Block Erase */
+#define FLASH_CMD_CE				0x60 /* Chip Erase(or 0xC7) */
+#define FLASH_CMD_PP				0x02 /* Page Program */
+#define FLASH_CMD_DP				0xB9 /* Deep Power Down */
+#define FLASH_CMD_RDP				0xAB /* Release from Deep Power-Down */
+#define FLASH_CMD_2READ				0xBB /* 2 x I/O read  command */
+#define FLASH_CMD_4READ				0xEB /* 4 x I/O read  command */
+#define FLASH_CMD_QREAD				0x6B /* 1I / 4O read command */
+#define FLASH_CMD_4PP				0x32 /* Quad page program, diff with MXIC */
+#define FLASH_CMD_FF				0xFF /* Release Read Enhanced */
+#define FLASH_CMD_REMS2				0x92 /* read ID for 2x I/O mode, diff with MXIC */
+#define FLASH_CMD_REMS4				0x94 /* read ID for 4x I/O mode, diff with MXIC */
+#define FLASH_CMD_RDSCUR			0x48 /* read security register, diff with MXIC */
+#define FLASH_CMD_WRSCUR			0x42 /* write security register, diff with MXIC */
 
 /* Support address 4 byte opcode for large size flash */
-#define FLASH_CMD_EN4B		0xb7	/* Enter 4 byte mode */
-#define FLASH_CMD_EX4B		0xe9	/* Exit  4 byte mode*/
+#define FLASH_CMD_EN4B				0xb7 /* Enter 4 byte mode */
+#define FLASH_CMD_EX4B				0xe9 /* Exit  4 byte mode*/
 
 /* Bank addr access commands */
-#define FLASH_CMD_EXTNADDR_WREAR	0xC5	/* Write extended address register */
-#define FLASH_CMD_EXTNADDR_RDEAR	0xC8	/* Read extended address register */
+#define FLASH_CMD_EXTNADDR_WREAR	0xC5 /* Write extended address register */
+#define FLASH_CMD_EXTNADDR_RDEAR	0xC8 /* Read extended address register */
 
 /*
  * NAND Flash opcodes
  */
  
-#define NAND_CMD_WREN			0x06        /* Write enable */
-#define NAND_CMD_WRDI			0x04        /* Write disable */
-#define NAND_CMD_RDID			0x9F        /* Read idenfication */
-#define NAND_CMD_WRSR			0x1F        /* Set feature, write status register */
-#define NAND_CMD_RDSR			0x0F        /* Get feature, read status register */
+#define NAND_CMD_WREN				0x06 /* Write enable */
+#define NAND_CMD_WRDI				0x04 /* Write disable */
+#define NAND_CMD_RDID				0x9F /* Read idenfication */
+#define NAND_CMD_WRSR				0x1F /* Set feature, write status register */
+#define NAND_CMD_RDSR				0x0F /* Get feature, read status register */
 
-#define NAND_CMD_READ			0x03        /* Read data */
-#define NAND_CMD_FREAD			0x0B        /* Fast read data */
-#define NAND_CMD_DREAD			0x3B        /* Double Output Mode command	1-1-2 */
-#define NAND_CMD_2READ			0xBB        /* 2 x I/O read  command	1-2-2, Not In MXIC */
-#define NAND_CMD_QREAD			0x6B        /* 1I / 4O read command		1-1-4 */
-#define NAND_CMD_4READ			0xEB        /* 4 x I/O read  command	1-4-4, Not In MXIC */
+#define NAND_CMD_READ				0x03 /* Read data */
+#define NAND_CMD_FREAD				0x0B /* Fast read data */
+#define NAND_CMD_DREAD				0x3B /* Double Output Mode command	1-1-2 */
+#define NAND_CMD_2READ				0xBB /* 2 x I/O read  command	1-2-2, Not In MXIC */
+#define NAND_CMD_QREAD				0x6B /* 1I / 4O read command	1-1-4 */
+#define NAND_CMD_4READ				0xEB /* 4 x I/O read  command	1-4-4, Not In MXIC */
 
-#define NAND_CMD_RESET			0xFF        /* Device Reset */
-#define NAND_CMD_PAGERD			0x13        /* Page Read */
-#define NAND_CMD_PROMEXEC		0x10        /* Program Execute */
-#define NAND_CMD_BE				0xD8        /* Block Erase */
+#define NAND_CMD_RESET				0xFF /* Device Reset */
+#define NAND_CMD_PAGERD				0x13 /* Page Read */
+#define NAND_CMD_PROMEXEC			0x10 /* Program Execute */
+#define NAND_CMD_BE					0xD8 /* Block Erase */
 
-#define NAND_CMD_PP				0x02        /* Page load */
-#define NAND_CMD_PP_RANDOM		0x84        /* Page load random(do not reset buffer) */
-#define NAND_CMD_QPP			0x32        /* Quad page load	1-1-4 */
-#define NAND_CMD_QPP_RANDOM		0x34        /* Quad page load random	1-1-4(do not reset buffer) */
+#define NAND_CMD_PP					0x02 /* Page load */
+#define NAND_CMD_PP_RANDOM			0x84 /* Page load random(do not reset buffer) */
+#define NAND_CMD_QPP				0x32 /* Quad page load	1-1-4 */
+#define NAND_CMD_QPP_RANDOM			0x34 /* Quad page load random	1-1-4(do not reset buffer) */
 
-#define WAIT_SPIC_BUSY		0
-#define WAIT_FLASH_BUSY		1
-#define WAIT_WRITE_DONE		2
-#define WAIT_WRITE_EN		3
-#define WAIT_TRANS_COMPLETE	4
+#define WAIT_SPIC_BUSY				0
+#define WAIT_FLASH_BUSY				1
+#define WAIT_WRITE_DONE				2
+#define WAIT_WRITE_EN				3
+#define WAIT_TRANS_COMPLETE			4
 
-#define TMODE_TX			0
-#define TMODE_RX			3
-
-#ifdef CONFIG_DM_SPI
-struct ameba_spi_platdata {
-	uint deactivate_delay_us;       /* Delay to wait after deactivate */
-};
-
-struct ameba_spi {
-	struct spi_slave *slave;
-	void *regs;
-	unsigned int mode;
-	unsigned long last_transaction_us;
-};
-
-typedef struct {
-	u8 addr_ch;
-	u8 data_ch;
-	u8 tmod;
-} spic_mode;
-
-#else
-struct ameba_spi {
-	struct spi_slave slave;
-	void *regs;
-	void *comp_param;
-};
-
-#endif
+#define TMODE_TX					0
+#define TMODE_RX					3
 
 /**************************************************************************//**
  * @defgroup CTRLR0
  * @brief Control Register 0
  * @{
  *****************************************************************************/
-#define BIT_USER_MODE              ((u32)0x00000001 << 31)          /*!<R/W 0x0  User mode bit. Enable to enter user mode. Disable to enter auto mode. It can not be changed while SPIC is busy (0x28 [0] BUSY). 1: User mode. User can push data to FIFO and set SSIENR to 1. SPIC won't accept auto read/write command. 0: Auto mode. User can't push data to FIFO and set SSIENR to 1. SPIC will accept auto read/write command. */
-#define BIT_UAR                    ((u32)0x00000001 << 30)          /*!<R/W 0x0  User mode bit auto reset. Enable to auto reset USER_MODE to 0 after current user mode transaction is over (SPIC_EN reset to 0). */
-#define MASK_CK_MTIMES             ((u32)0x0000001F << 23)          /*!<R/W ATCK_MTIMES  Indicate the check times. If Flash is always busy in auto-check times, it causes ACEIR interrupt. The delay time (cycles) is related to bus_clk. The cycles of the parameter = (CK_MTIMES << (11+ATCK_BIT_EXTEND).). User should ensure the timeout > Write time of Flash The timeout time(ns) = 2*BAUDR*(1/SPIC_freq)(8/CH) (CK_MTIMES << (11+ATCK_BIT_EXTEND).) EXAMPLE1: Flash Program time= 1ms, BAUDR=1, CH=1 (SPI) and (1/SPIC_freq) = 10ns. ATCK_MTIMES should be to set 4. EXAMPLE2: SPIC_freq = 200MHz, BAUDR = 1, CH =4 (QSPI), and ATCK_BIT_EXTEND = 2, the maximum auto_check time should be = 2*1*(1/200MHz)(8/4) (5'b11111<<13) = 2*1*(1/200MHz)(8/4) (18'b11_1110_0000_0000_0000) = 2*1*(1/200MHz)(8/4) (18'h3_e000) = 2*1*(1/200MHz)(8/4) (253952) = 5079040 ns = 5.07 ms Suggestion: If ACEIR interrupt occurs, the user should check the flash status by the software itself. Note: Before SVN 8369 Version, CK_MTIMES is fixed to shift 10bit; The formula become2*BAUDR*(1/SPIC_freq)(8/CH) (CK_MTIMES << (10)) */
+#define BIT_USER_MODE              ((u32)0x00000001 << 31)         /*!<R/W 0x0  User mode bit. Enable to enter user mode. Disable to enter auto mode. It can not be changed while SPIC is busy (0x28 [0] BUSY). 1: User mode. User can push data to FIFO and set SSIENR to 1. SPIC won't accept auto read/write command. 0: Auto mode. User can't push data to FIFO and set SSIENR to 1. SPIC will accept auto read/write command. */
+#define BIT_UAR                    ((u32)0x00000001 << 30)         /*!<R/W 0x0  User mode bit auto reset. Enable to auto reset USER_MODE to 0 after current user mode transaction is over (SPIC_EN reset to 0). */
+#define MASK_CK_MTIMES             ((u32)0x0000001F << 23)         /*!<R/W ATCK_MTIMES  Indicate the check times. If Flash is always busy in auto-check times, it causes ACEIR interrupt. The delay time (cycles) is related to bus_clk. The cycles of the parameter = (CK_MTIMES << (11+ATCK_BIT_EXTEND).). User should ensure the timeout > Write time of Flash The timeout time(ns) = 2*BAUDR*(1/SPIC_freq)(8/CH) (CK_MTIMES << (11+ATCK_BIT_EXTEND).) EXAMPLE1: Flash Program time= 1ms, BAUDR=1, CH=1 (SPI) and (1/SPIC_freq) = 10ns. ATCK_MTIMES should be to set 4. EXAMPLE2: SPIC_freq = 200MHz, BAUDR = 1, CH =4 (QSPI), and ATCK_BIT_EXTEND = 2, the maximum auto_check time should be = 2*1*(1/200MHz)(8/4) (5'b11111<<13) = 2*1*(1/200MHz)(8/4) (18'b11_1110_0000_0000_0000) = 2*1*(1/200MHz)(8/4) (18'h3_e000) = 2*1*(1/200MHz)(8/4) (253952) = 5079040 ns = 5.07 ms Suggestion: If ACEIR interrupt occurs, the user should check the flash status by the software itself. Note: Before SVN 8369 Version, CK_MTIMES is fixed to shift 10bit; The formula become2*BAUDR*(1/SPIC_freq)(8/CH) (CK_MTIMES << (10)) */
 #define CK_MTIMES(x)               ((u32)(((x) & 0x0000001F) << 23))
 #define GET_CK_MTIMES(x)           ((u32)(((x >> 23) & 0x0000001F)))
-#define BIT_FAST_RD                ((u32)0x00000001 << 22)          /*!<R/W 0x0  Indicate to use fast read command in user mode. If setting to 1, SPIC would use FBAUDR to generate spi_sclk. */
-#define MASK_CMD_CH                ((u32)0x00000003 << 20)          /*!<R/W 0x0  Indicate channel number of command phase in transmitting or receiving data. Command phase is usually used to send SPI command. 0: single channel, 1: dual channels, 2: quad channels, 3: octal channel. */
+#define BIT_FAST_RD                ((u32)0x00000001 << 22)         /*!<R/W 0x0  Indicate to use fast read command in user mode. If setting to 1, SPIC would use FBAUDR to generate spi_sclk. */
+#define MASK_CMD_CH                ((u32)0x00000003 << 20)         /*!<R/W 0x0  Indicate channel number of command phase in transmitting or receiving data. Command phase is usually used to send SPI command. 0: single channel, 1: dual channels, 2: quad channels, 3: octal channel. */
 #define CMD_CH(x)                  ((u32)(((x) & 0x00000003) << 20))
 #define GET_CMD_CH(x)              ((u32)(((x >> 20) & 0x00000003)))
-#define MASK_DATA_CH               ((u32)0x00000003 << 18)          /*!<R/W 0x0  Indicate channel number of data phase in transmitting or receiving data. Data phase is used to send data after address phase. 0: single channel, 1: dual channels, 2: quad channels, 3: octal channel. */
+#define MASK_DATA_CH               ((u32)0x00000003 << 18)         /*!<R/W 0x0  Indicate channel number of data phase in transmitting or receiving data. Data phase is used to send data after address phase. 0: single channel, 1: dual channels, 2: quad channels, 3: octal channel. */
 #define DATA_CH(x)                 ((u32)(((x) & 0x00000003) << 18))
 #define GET_DATA_CH(x)             ((u32)(((x >> 18) & 0x00000003)))
-#define MASK_ADDR_CH               ((u32)0x00000003 << 16)          /*!<R/W 0x0  Indicate channel number of address phase after command phase. Addr phase is used to send address or data. Addr phase is between one-byte command and a data phase. The number of bytes is determined by the ADDR_LENGTH. 0: single channel, 1: dual channels, 2: quad channels, 3: octal channel. */
+#define MASK_ADDR_CH               ((u32)0x00000003 << 16)         /*!<R/W 0x0  Indicate channel number of address phase after command phase. Addr phase is used to send address or data. Addr phase is between one-byte command and a data phase. The number of bytes is determined by the ADDR_LENGTH. 0: single channel, 1: dual channels, 2: quad channels, 3: octal channel. */
 #define ADDR_CH(x)                 ((u32)(((x) & 0x00000003) << 16))
 #define GET_ADDR_CH(x)             ((u32)(((x >> 16) & 0x00000003)))
-#define MASK_DDR_EN                ((u32)0x00000007 << 13)          /*!<R/W 0x0  Indicate the DDR mode in CMD_CH/DATA_CH/ADDR_CH. CTRLR0[15]: CMD_CH (always 2-Byte CMD type) CTRLR0[14]: DATA_CH CTRLR0[13]: ADDR_CH 0: Disable 1: Enable */
+#define MASK_DDR_EN                ((u32)0x00000007 << 13)         /*!<R/W 0x0  Indicate the DDR mode in CMD_CH/DATA_CH/ADDR_CH. CTRLR0[15]: CMD_CH (always 2-Byte CMD type) CTRLR0[14]: DATA_CH CTRLR0[13]: ADDR_CH 0: Disable 1: Enable */
 #define DDR_EN(x)                  ((u32)(((x) & 0x00000007) << 13))
 #define GET_DDR_EN(x)              ((u32)(((x >> 13) & 0x00000007)))
-#define BIT_GCLK_DIS               ((u32)0x00000001 << 10)          /*!<R/W 0x0  Set to disable gated clock of icg cell */
+#define BIT_GCLK_DIS               ((u32)0x00000001 << 10)         /*!<R/W 0x0  Set to disable gated clock of icg cell */
 #define MASK_TMOD                  ((u32)0x00000003 << 8)          /*!<R/W 0x0  Indicate transfer mode. 2'b00: transmit mode Others (or 2'b11): receive mode */
 #define TMOD(x)                    ((u32)(((x) & 0x00000003) << 8))
 #define GET_TMOD(x)                ((u32)(((x >> 8) & 0x00000003)))
@@ -266,13 +219,13 @@ struct ameba_spi {
  * @brief Interrupt Mask Register
  * @{
  *****************************************************************************/
-#define BIT_NWEIM                  ((u32)0x00000001 << 16)          /*!<R/W 0x0  NAND Flash write error interrupt mask. 1: spi_nweir_r is not masked. 0: spi_nweir_r is masked. */
-#define BIT_STFIM                  ((u32)0x00000001 << 15)          /*!<R/W 0x0  Status FIFO full interrupt mask. 1: spi_stfir is not masked. 0: spi_stfir is masked. */
-#define BIT_STOIM                  ((u32)0x00000001 << 14)          /*!<R/W 0x0  Status FIFO overflow interrupt masked. 1: spi_stoir_r is not masked. 0: spi_stoir_r is masked. */
-#define BIT_STUIM                  ((u32)0x00000001 << 13)          /*!<R/W 0x0  Status FIFO underflow interrupt masked. 1: spi_stuir_r is not masked. 0: spi_stuir_r is masked. */
-#define BIT_DREIM                  ((u32)0x00000001 << 12)          /*!<R/W 0x0  DR timeout error interrupt mask. 1: spi_dreir_r is not masked. 0: spi_dreir_r is masked. */
-#define BIT_ACSIM                  ((u32)0x00000001 << 11)          /*!<R/W 0x0  Auto-check Flash Status raw interrupt mask. 1: spi_acsir_r is not masked. 0: spi_acsis_r is masked. */
-#define BIT_TFSIM                  ((u32)0x00000001 << 10)          /*!<R/W 0x0  Transmit finish interrupt mask. 1: spi_tfsir_r is not masked. 0: spi_tfsir_r is masked. */
+#define BIT_NWEIM                  ((u32)0x00000001 << 16)         /*!<R/W 0x0  NAND Flash write error interrupt mask. 1: spi_nweir_r is not masked. 0: spi_nweir_r is masked. */
+#define BIT_STFIM                  ((u32)0x00000001 << 15)         /*!<R/W 0x0  Status FIFO full interrupt mask. 1: spi_stfir is not masked. 0: spi_stfir is masked. */
+#define BIT_STOIM                  ((u32)0x00000001 << 14)         /*!<R/W 0x0  Status FIFO overflow interrupt masked. 1: spi_stoir_r is not masked. 0: spi_stoir_r is masked. */
+#define BIT_STUIM                  ((u32)0x00000001 << 13)         /*!<R/W 0x0  Status FIFO underflow interrupt masked. 1: spi_stuir_r is not masked. 0: spi_stuir_r is masked. */
+#define BIT_DREIM                  ((u32)0x00000001 << 12)         /*!<R/W 0x0  DR timeout error interrupt mask. 1: spi_dreir_r is not masked. 0: spi_dreir_r is masked. */
+#define BIT_ACSIM                  ((u32)0x00000001 << 11)         /*!<R/W 0x0  Auto-check Flash Status raw interrupt mask. 1: spi_acsir_r is not masked. 0: spi_acsis_r is masked. */
+#define BIT_TFSIM                  ((u32)0x00000001 << 10)         /*!<R/W 0x0  Transmit finish interrupt mask. 1: spi_tfsir_r is not masked. 0: spi_tfsir_r is masked. */
 #define BIT_USEIM                  ((u32)0x00000001 << 9)          /*!<R/W 0x0  User_mode error interrupt mask. 1: spi_useir_r is not masked. 0: spi_useir_r is masked. */
 #define BIT_ACEIM                  ((u32)0x00000001 << 8)          /*!<R/W 0x1  Auto-check timeout error interrupt mask. 1: spi_aceir_r is not masked. 0: spi_aceir_r is masked. */
 #define BIT_BYEIM                  ((u32)0x00000001 << 7)          /*!<R/W 0x1  The Byte-Enable error interrupt mask. 1: spi_byeir_r is not masked. 0: spi_byeir_r is masked. */
@@ -290,13 +243,13 @@ struct ameba_spi {
  * @brief Interrupt Status Register
  * @{
  *****************************************************************************/
-#define BIT_NWEIS                  ((u32)0x00000001 << 16)          /*!<R 0x0  NAND Flash write error interrupt status raw interrupt status after masking. 1: spi_nweir_r is active after masking. 0: spi_nweir_r is not active after masking. */
-#define BIT_STFIS                  ((u32)0x00000001 << 15)          /*!<R 0x0  Status FIFO full raw interrupt status after masking. 1: spi_stfir_r is active after masking. 0: spi_stfir_r is not active after masking. */
-#define BIT_STOIS                  ((u32)0x00000001 << 14)          /*!<R 0x0  Status FIFO overflow interrupt status after masking. 1: spi_stoir_r is active after masking. 0: spi_stoir_r is not active after masking. */
-#define BIT_STUIS                  ((u32)0x00000001 << 13)          /*!<R 0x0  Status FIFO underflows interrupt status after masking. 1: spi_stuir_r is active after masking. 0: spi_stuir_r is not active after masking. */
-#define BIT_DREIS                  ((u32)0x00000001 << 12)          /*!<R 0x0  DR timeout error status after masking. 1: spi_dreir_r is active after masking. 0: spi_dreir_r is not active after masking. */
-#define BIT_ACSIS                  ((u32)0x00000001 << 11)          /*!<R 0x0  Auto-check Flash Status after masking. 1: spi_aceir_r is active after masking. 0: spi_aceir_r is not active after masking. */
-#define BIT_TFSIS                  ((u32)0x00000001 << 10)          /*!<R 0x0  Transmit finish interrupt status after masking. 1: spi_tfsir_r is active after masking. 0: spi_tfsir_r is not active after masking. */
+#define BIT_NWEIS                  ((u32)0x00000001 << 16)         /*!<R 0x0  NAND Flash write error interrupt status raw interrupt status after masking. 1: spi_nweir_r is active after masking. 0: spi_nweir_r is not active after masking. */
+#define BIT_STFIS                  ((u32)0x00000001 << 15)         /*!<R 0x0  Status FIFO full raw interrupt status after masking. 1: spi_stfir_r is active after masking. 0: spi_stfir_r is not active after masking. */
+#define BIT_STOIS                  ((u32)0x00000001 << 14)         /*!<R 0x0  Status FIFO overflow interrupt status after masking. 1: spi_stoir_r is active after masking. 0: spi_stoir_r is not active after masking. */
+#define BIT_STUIS                  ((u32)0x00000001 << 13)         /*!<R 0x0  Status FIFO underflows interrupt status after masking. 1: spi_stuir_r is active after masking. 0: spi_stuir_r is not active after masking. */
+#define BIT_DREIS                  ((u32)0x00000001 << 12)         /*!<R 0x0  DR timeout error status after masking. 1: spi_dreir_r is active after masking. 0: spi_dreir_r is not active after masking. */
+#define BIT_ACSIS                  ((u32)0x00000001 << 11)         /*!<R 0x0  Auto-check Flash Status after masking. 1: spi_aceir_r is active after masking. 0: spi_aceir_r is not active after masking. */
+#define BIT_TFSIS                  ((u32)0x00000001 << 10)         /*!<R 0x0  Transmit finish interrupt status after masking. 1: spi_tfsir_r is active after masking. 0: spi_tfsir_r is not active after masking. */
 #define BIT_USEIS                  ((u32)0x00000001 << 9)          /*!<R 0x0  User mode error status after masking. 1: spi_useir_r is active after masking. 0: spi_useir_r is not active after masking. */
 #define BIT_ACEIS                  ((u32)0x00000001 << 8)          /*!<R 0x0  Auto-check timeout error status after masking. 1: spi_aceir_r is active after masking. 0: spi_aceir_r is not active after masking. */
 #define BIT_BYEIS                  ((u32)0x00000001 << 7)          /*!<R 0x0  The byte-Enable error interrupts status after masking. 1: spi_byeir_r is active after masking. 0: spi_byeir_r is not active after masking. */
@@ -314,13 +267,13 @@ struct ameba_spi {
  * @brief Raw Interrupt Status Register
  * @{
  *****************************************************************************/
-#define BIT_NWEIR                  ((u32)0x00000001 << 16)          /*!<R 0x0  NAND Flash write error interrupt status raw interrupt status prior to masking. 1: spi_nweir_r is active prior to masking. 0: spi_nweir_r is not active prior to masking. */
-#define BIT_STFIR                  ((u32)0x00000001 << 15)          /*!<R 0x0  Status FIFO full raw interrupt status prior to masking 1: spi_stfir is active prior to masking. 0: spi_stfir is not active prior to masking. */
-#define BIT_STOIR                  ((u32)0x00000001 << 14)          /*!<R 0x0  Status FIFO overflows raw interrupt status prior to masking. 1: spi_stoir_r is active prior to masking. 0: spi_stoir_r is not active prior to masking. */
-#define BIT_STUIR                  ((u32)0x00000001 << 13)          /*!<R 0x0  Status FIFO underflows raw interrupt status prior to masking. 1: spi_stuir_r is active prior to masking. 0: spi_stuir_r is not active prior to masking. */
-#define BIT_DREIR                  ((u32)0x00000001 << 12)          /*!<R 0x0  DR Timeout error status raw interrupt status prior to masking 1: spi_dreir_r is active prior to masking. 0: spi_dreir_r is not active prior to masking. */
-#define BIT_ACSIR                  ((u32)0x00000001 << 11)          /*!<R 0x0  Auto-check Flash Status raw interrupt status prior to masking 1: spi_acsir_r is active prior to masking. 0: spi_acsir_r is not active prior to masking. */
-#define BIT_TFSIR                  ((u32)0x00000001 << 10)          /*!<R 0x0  Transmit Finish Status raw interrupt status prior to masking 1: spi_tfsir_r is active prior to masking. 0: spi_tfsir_r is not active prior to masking. */
+#define BIT_NWEIR                  ((u32)0x00000001 << 16)         /*!<R 0x0  NAND Flash write error interrupt status raw interrupt status prior to masking. 1: spi_nweir_r is active prior to masking. 0: spi_nweir_r is not active prior to masking. */
+#define BIT_STFIR                  ((u32)0x00000001 << 15)         /*!<R 0x0  Status FIFO full raw interrupt status prior to masking 1: spi_stfir is active prior to masking. 0: spi_stfir is not active prior to masking. */
+#define BIT_STOIR                  ((u32)0x00000001 << 14)         /*!<R 0x0  Status FIFO overflows raw interrupt status prior to masking. 1: spi_stoir_r is active prior to masking. 0: spi_stoir_r is not active prior to masking. */
+#define BIT_STUIR                  ((u32)0x00000001 << 13)         /*!<R 0x0  Status FIFO underflows raw interrupt status prior to masking. 1: spi_stuir_r is active prior to masking. 0: spi_stuir_r is not active prior to masking. */
+#define BIT_DREIR                  ((u32)0x00000001 << 12)         /*!<R 0x0  DR Timeout error status raw interrupt status prior to masking 1: spi_dreir_r is active prior to masking. 0: spi_dreir_r is not active prior to masking. */
+#define BIT_ACSIR                  ((u32)0x00000001 << 11)         /*!<R 0x0  Auto-check Flash Status raw interrupt status prior to masking 1: spi_acsir_r is active prior to masking. 0: spi_acsir_r is not active prior to masking. */
+#define BIT_TFSIR                  ((u32)0x00000001 << 10)         /*!<R 0x0  Transmit Finish Status raw interrupt status prior to masking 1: spi_tfsir_r is active prior to masking. 0: spi_tfsir_r is not active prior to masking. */
 #define BIT_USEIR                  ((u32)0x00000001 << 9)          /*!<R 0x0  User_mode error status raw interrupt status prior to masking 1: spi_useir_r is active prior to masking. 0: spi_useir_r is not active prior to masking. */
 #define BIT_ACEIR                  ((u32)0x00000001 << 8)          /*!<R 0x0  Auto-check timeout error status raw interrupt status prior to masking 1: spi_aceir_r is active prior to masking. 0: spi_aceir_r is not active prior to masking. */
 #define BIT_BYEIR                  ((u32)0x00000001 << 7)          /*!<R 0x0  The Byte-Enable error interrupt status raw interrupt status prior to mask. 1: spi_byeir_r is active prior to masking. 0: spi_byeir_r is not active prior to masking. */
@@ -489,10 +442,10 @@ Encrypted_Date: generated date  Contain the decimal value of SPIC version. (Afte
  * @brief Quad I/O Read Command of SPI Flash
  * @{
  *****************************************************************************/
-#define MASK_EXIT_PRM_CMD          ((u32)0x000000FF << 24)          /*!<N/A 0xFF  Exit High Performance Read Mode commend. */
+#define MASK_EXIT_PRM_CMD          ((u32)0x000000FF << 24)         /*!<N/A 0xFF  Exit High Performance Read Mode commend. */
 #define EXIT_PRM_CMD(x)            ((u32)(((x) & 0x000000FF) << 24))
 #define GET_EXIT_PRM_CMD(x)        ((u32)(((x >> 24) & 0x000000FF)))
-#define MASK_PRM_VAL               ((u32)0x000000FF << 16)          /*!<R/W 0xA5  High Performance Read Mode Value. */
+#define MASK_PRM_VAL               ((u32)0x000000FF << 16)         /*!<R/W 0xA5  High Performance Read Mode Value. */
 #define PRM_VAL(x)                 ((u32)(((x) & 0x000000FF) << 16))
 #define GET_PRM_VAL(x)             ((u32)(((x >> 16) & 0x000000FF)))
 #define MASK_EXIT_PRM_DUM_LEN      ((u32)0x000000FF << 8)          /*!<N/A 0x0  If Exit PRM commend is more than 1 byte, use EXIT_PRM_DUM_LEN to extend the commend. It is referenced by bus_clk. Ex. In qpi mode (4-4-4), FFFFFFFFh data cycle should be issued (4-byte data in 8 spi cycles). EXIT_PRM_CMD only push 1 byte (2 spi cycles), so use EXIT_PRM_DUM_LEN to extend 6 spi cycles. EXIT_PRM_DUM_LEN = 6 (spi_cycle) * (2 * baurd_rate) */
@@ -571,16 +524,16 @@ Encrypted_Date: generated date  Contain the decimal value of SPIC version. (Afte
  * @brief Read Status Command of SPI Flash
  * @{
  *****************************************************************************/
-#define BIT_INTERVAL_EN            ((u32)0x00000001 << 31)          /*!<R/W 0x0  Set to enable INTERVAL_ODD. */
-#define BIT_INTERVAL_ODD           ((u32)0x00000001 << 30)          /*!<R/W 0x0  Indicate SPI Flash read status with 2-Byte status but checking only odd byte or even byte. 0: even byte (2, 4, 6, ...) 1: odd byte (1, 3, 5, ...) */
-#define MASK_ST_CMD_LEN            ((u32)0x00000003 << 28)          /*!<R/W 0x1  Indicate the number of bytes in read status command. ST_CMD_LEN can be 1~3. */
+#define BIT_INTERVAL_EN            ((u32)0x00000001 << 31)         /*!<R/W 0x0  Set to enable INTERVAL_ODD. */
+#define BIT_INTERVAL_ODD           ((u32)0x00000001 << 30)         /*!<R/W 0x0  Indicate SPI Flash read status with 2-Byte status but checking only odd byte or even byte. 0: even byte (2, 4, 6, ...) 1: odd byte (1, 3, 5, ...) */
+#define MASK_ST_CMD_LEN            ((u32)0x00000003 << 28)         /*!<R/W 0x1  Indicate the number of bytes in read status command. ST_CMD_LEN can be 1~3. */
 #define ST_CMD_LEN(x)              ((u32)(((x) & 0x00000003) << 28))
 #define GET_ST_CMD_LEN(x)          ((u32)(((x >> 28) & 0x00000003)))
-#define MASK_ST_CMD_CH             ((u32)0x00000003 << 26)          /*!<R/W 0x0  Indicate channel number of read status command in transmitting and receiving data. 0: single channel 1: dual channels 2: quad channels 3: octal channel */
+#define MASK_ST_CMD_CH             ((u32)0x00000003 << 26)         /*!<R/W 0x0  Indicate channel number of read status command in transmitting and receiving data. 0: single channel 1: dual channels 2: quad channels 3: octal channel */
 #define ST_CMD_CH(x)               ((u32)(((x) & 0x00000003) << 26))
 #define GET_ST_CMD_CH(x)           ((u32)(((x >> 26) & 0x00000003)))
-#define BIT_ST_CMD_DDR_EN          ((u32)0x00000001 << 25)          /*!<R/W 0x0  Indicate the DDR mode in ST_CMD_CH. */
-#define MASK_RD_ST_CMD_3RD_BYTE    ((u32)0x000000FF << 16)          /*!<R/W 0x00  Indicate SPI Flash command value of 3rd byte of read status. */
+#define BIT_ST_CMD_DDR_EN          ((u32)0x00000001 << 25)         /*!<R/W 0x0  Indicate the DDR mode in ST_CMD_CH. */
+#define MASK_RD_ST_CMD_3RD_BYTE    ((u32)0x000000FF << 16)         /*!<R/W 0x00  Indicate SPI Flash command value of 3rd byte of read status. */
 #define RD_ST_CMD_3RD_BYTE(x)      ((u32)(((x) & 0x000000FF) << 16))
 #define GET_RD_ST_CMD_3RD_BYTE(x)  ((u32)(((x >> 16) & 0x000000FF)))
 #define MASK_RD_ST_CMD_2ND_BYTE    ((u32)0x000000FF << 8)          /*!<R/W 0x05  Indicate SPI Flash command value of 2nd byte of read status. */
@@ -596,9 +549,9 @@ Encrypted_Date: generated date  Contain the decimal value of SPIC version. (Afte
  * @brief Control Register 2
  * @{
  *****************************************************************************/
-#define BIT_DIS_DM_CA              ((u32)0x00000001 << 14)          /*!<R/W 0x0  Set to disable spi_dm_oe_n (let the device to drive DM) when SPIC pushing CMD and ADDR for both user mode and auto mode. */
-#define BIT_FULL_WR                ((u32)0x00000001 << 13)          /*!<R/W 0x1  Set to enable full write in auto mode. If FULL_WR = 0, SPIC will use spi_dm to do the partial write. */
-#define BIT_DM_ACT                 ((u32)0x00000001 << 12)          /*!<R/W 0x1  DM is active high or low. If DM is active high (DM=1 means "don't write"), DM_ACT should be set to 1. */
+#define BIT_DIS_DM_CA              ((u32)0x00000001 << 14)         /*!<R/W 0x0  Set to disable spi_dm_oe_n (let the device to drive DM) when SPIC pushing CMD and ADDR for both user mode and auto mode. */
+#define BIT_FULL_WR                ((u32)0x00000001 << 13)         /*!<R/W 0x1  Set to enable full write in auto mode. If FULL_WR = 0, SPIC will use spi_dm to do the partial write. */
+#define BIT_DM_ACT                 ((u32)0x00000001 << 12)         /*!<R/W 0x1  DM is active high or low. If DM is active high (DM=1 means "don't write"), DM_ACT should be set to 1. */
 #define MASK_RX_FIFO_ENTRY         ((u32)0x0000000F << 8)          /*!<R/W 5  If using SPIC_HAS_DMA (NO_MERGE_FIFO) SPIC, this field indicates the valid entry of RX FIFO. It is an index of 2 and it should be equal or smaller than 5. The user can modify it to profile with a different entry. Ex: if RX_FIFO entry is 32, RX_FIFO_ENTYR <=5. */
 #define RX_FIFO_ENTRY(x)           ((u32)(((x) & 0x0000000F) << 8))
 #define GET_RX_FIFO_ENTRY(x)       ((u32)(((x >> 8) & 0x0000000F)))
@@ -625,10 +578,10 @@ Encrypted_Date: generated date  Contain the decimal value of SPIC version. (Afte
  * @brief User Length Register
  * @{
  *****************************************************************************/
-#define MASK_USER_ADDR_LENGTH      ((u32)0x0000000F << 16)          /*!<R/W 0x3  Indicate number of bytes in address phase (between command phase and write/read phase) in user mode. If it is set to 4, it will transmit 4-byte Address to support 4-byte address mode in SPI Flash. */
+#define MASK_USER_ADDR_LENGTH      ((u32)0x0000000F << 16)         /*!<R/W 0x3  Indicate number of bytes in address phase (between command phase and write/read phase) in user mode. If it is set to 4, it will transmit 4-byte Address to support 4-byte address mode in SPI Flash. */
 #define USER_ADDR_LENGTH(x)        ((u32)(((x) & 0x0000000F) << 16))
 #define GET_USER_ADDR_LENGTH(x)    ((u32)(((x >> 16) & 0x0000000F)))
-#define MASK_USER_CMD_LENGHT       ((u32)0x00000003 << 12)          /*!<R/W 0x0  Indicate number of bytes in command phase in user mode. USER_CMD_LENGHT can be 0~3. */
+#define MASK_USER_CMD_LENGHT       ((u32)0x00000003 << 12)         /*!<R/W 0x0  Indicate number of bytes in command phase in user mode. USER_CMD_LENGHT can be 0~3. */
 #define USER_CMD_LENGHT(x)         ((u32)(((x) & 0x00000003) << 12))
 #define GET_USER_CMD_LENGHT(x)     ((u32)(((x >> 12) & 0x00000003)))
 #define MASK_USER_RD_DUMMY_LENGTH  ((u32)0x00000FFF << 0)          /*!<R/W 0x0  Indicate delay cycles for receiving data in user mode (USER_MODE == 1). It is referenced by bus_clk. */
@@ -641,13 +594,13 @@ Encrypted_Date: generated date  Contain the decimal value of SPIC version. (Afte
  * @brief Auto Address Length Register
  * @{
  *****************************************************************************/
-#define MASK_RDSR_DUMMY_LENGTH     ((u32)0x000000FF << 20)          /*!<R/W 0x0  Indicate delay cycles for receiving data after Read Status Register (RDSR) command. (auto write or user mode with auto check) It is referenced by bus_clk. */
+#define MASK_RDSR_DUMMY_LENGTH     ((u32)0x000000FF << 20)         /*!<R/W 0x0  Indicate delay cycles for receiving data after Read Status Register (RDSR) command. (auto write or user mode with auto check) It is referenced by bus_clk. */
 #define RDSR_DUMMY_LENGTH(x)       ((u32)(((x) & 0x000000FF) << 20))
 #define GET_RDSR_DUMMY_LENGTH(x)   ((u32)(((x >> 20) & 0x000000FF)))
-#define MASK_AUTO_ADDR_LENGTH      ((u32)0x0000000F << 16)          /*!<R/W FLASH_ADDR_BYTE  Indicate number of bytes address in read/write command in auto mode. AUTO_ADDR_LENGTH should be 1, 2, 3, 4 bytes. If it is set to 4, it will transmit 4-byte Address to support 4-byte address mode in SPI Flash. Note: PRM in auto mode should set VALID_CMD[11] (PRM_EN) with correct AUTO_ADDR_LENGTH. */
+#define MASK_AUTO_ADDR_LENGTH      ((u32)0x0000000F << 16)         /*!<R/W FLASH_ADDR_BYTE  Indicate number of bytes address in read/write command in auto mode. AUTO_ADDR_LENGTH should be 1, 2, 3, 4 bytes. If it is set to 4, it will transmit 4-byte Address to support 4-byte address mode in SPI Flash. Note: PRM in auto mode should set VALID_CMD[11] (PRM_EN) with correct AUTO_ADDR_LENGTH. */
 #define AUTO_ADDR_LENGTH(x)        ((u32)(((x) & 0x0000000F) << 16))
 #define GET_AUTO_ADDR_LENGTH(x)    ((u32)(((x >> 16) & 0x0000000F)))
-#define MASK_IN_PHYSICAL_CYC       ((u32)0x0000000F << 12)          /*!<R/W 0x0  Indicate how many SPIC CLK (bus_clk) cycles from pad to internal SPIC. */
+#define MASK_IN_PHYSICAL_CYC       ((u32)0x0000000F << 12)         /*!<R/W 0x0  Indicate how many SPIC CLK (bus_clk) cycles from pad to internal SPIC. */
 #define IN_PHYSICAL_CYC(x)         ((u32)(((x) & 0x0000000F) << 12))
 #define GET_IN_PHYSICAL_CYC(x)     ((u32)(((x >> 12) & 0x0000000F)))
 #define MASK_RD_DUMMY_LENGTH       ((u32)0x00000FFF << 0)          /*!<R/W DUMMY_CYCLE  Indicate delay cycles for receiving data. It is referenced by bus_clk. Note: Don't include SPIC CLK (bus_clk) cycles from pad to internal SPIC */
@@ -660,12 +613,12 @@ Encrypted_Date: generated date  Contain the decimal value of SPIC version. (Afte
  * @brief Valid Command Register
  * @{
  *****************************************************************************/
-#define BIT_SEQ_WR_EN              ((u32)0x00000001 << 15)          /*!<R/W 0x0  Set (1) to enable read sequential transaction write function in auto mode. If two bus write transactions are sequential (address is consecutive), SPIC can access second transaction data without sending Read CMD/ADDR/DUMMY. Once disable (0) this bit field, spi_csn will inactive immediately and also disable this function. Note: Run SEQ_WR_EN after SPIC boot finish. */
-#define BIT_SEQ_RD_EN              ((u32)0x00000001 << 14)          /*!<R/W 0x1  Set (1) to enable read sequential transaction read function in auto mode. If two bus read transactions are sequential (address is consecutive), SPIC can access second transaction data without sending Read CMD/ADDR/DUMMY. Once disable (0) this bit field, spi_csn will inactive immediately and also disable this function. Note: Run SEQ_RD_EN after SPIC boot finish. */
-#define BIT_DUM_EN                 ((u32)0x00000001 << 13)          /*!<R/W 0x0  Enable to push one dummy byte (DUM_BYTE_VAL) after pushing address to Flash in auto read. If PRM_EN is active, it will push PRM_Value instead of DUM_BYTE_VAL. If RD_DUMMY_LENGTH = 0, it won't push the dummy byte. */
-#define BIT_CTRLR0_CH              ((u32)0x00000001 << 12)          /*!<R/W 0x0  Set (1) to use CTRLR0 CMD_CH/DATA_CH/ADDR_CH and DDR_EN field in Auto mode; Otherwise, SPIC will decode according to which VALID_CMD you choose in auto mode. Suggestion while use this bit field: Read Flash mode: (1-4-8), (4-4-8), (1-4D-8D), (4-4D-8D) with using RD_QUAD_IO[7:0] Read Flash mode (with 2-Byte CMD): (1-8-8), (8-8-8), (8D-8D-8D), (4D-4D-4D) with using RD_FAST_SINGLE_IO[15:0] (always using FBAUD) Write Flash mode: (1-4-8), (4-4-8) with using WR_QUAD_IO[7:0] Write Flash mode (with 2-Byte CMD): (1-8-8), (8-8-8), (8D-8D-8D) with using WR_SINGLE_IO[15:0] */
-#define BIT_PRM_EN                 ((u32)0x00000001 << 11)          /*!<R/W 0x0  Set to enable SPIC performance read mode in Auto Mode. RXI-312 SPIC will auto exit performance read mode before auto write or enter to user mode. Enter PRM Flow: Set CR_VALID_CMD[11] (PRM_EN) with CR_VALID_CMD[4] (RD_QUAD_IO) or with (CR_VALID_CMD[0] and CR_VALID_CMD[12]) Set CR_READ_QUAD_ADDR_DATA[23:16] (PRM_VALUE) and [7:0] (RD_QUAD_IO_CMD) Set correct Dummy Cycle, and Valid Command then access in Auto Mode address range If PRM_EN, at 1st time Auto Rd, it will access with CMD, and store this condition. At 2nd Auto Rd or later, it will access without CMD but with Address and Mode Value. Our SPIC will check PRM_VALUE (CR_READ_QUAD_ADDR_DATA [23:16]), if PRM_VALUE ==0x00 (not a valid PRM value), and PRM_EN is set, SPIC will always access SPI Flash with (CMD+ADDR+MODE+DUMMY+...) format. */
-#define BIT_RM_WEN                 ((u32)0x00000001 << 10)          /*!<R/W 0x0  Remove write enable command in auto write. */
+#define BIT_SEQ_WR_EN              ((u32)0x00000001 << 15)         /*!<R/W 0x0  Set (1) to enable read sequential transaction write function in auto mode. If two bus write transactions are sequential (address is consecutive), SPIC can access second transaction data without sending Read CMD/ADDR/DUMMY. Once disable (0) this bit field, spi_csn will inactive immediately and also disable this function. Note: Run SEQ_WR_EN after SPIC boot finish. */
+#define BIT_SEQ_RD_EN              ((u32)0x00000001 << 14)         /*!<R/W 0x1  Set (1) to enable read sequential transaction read function in auto mode. If two bus read transactions are sequential (address is consecutive), SPIC can access second transaction data without sending Read CMD/ADDR/DUMMY. Once disable (0) this bit field, spi_csn will inactive immediately and also disable this function. Note: Run SEQ_RD_EN after SPIC boot finish. */
+#define BIT_DUM_EN                 ((u32)0x00000001 << 13)         /*!<R/W 0x0  Enable to push one dummy byte (DUM_BYTE_VAL) after pushing address to Flash in auto read. If PRM_EN is active, it will push PRM_Value instead of DUM_BYTE_VAL. If RD_DUMMY_LENGTH = 0, it won't push the dummy byte. */
+#define BIT_CTRLR0_CH              ((u32)0x00000001 << 12)         /*!<R/W 0x0  Set (1) to use CTRLR0 CMD_CH/DATA_CH/ADDR_CH and DDR_EN field in Auto mode; Otherwise, SPIC will decode according to which VALID_CMD you choose in auto mode. Suggestion while use this bit field: Read Flash mode: (1-4-8), (4-4-8), (1-4D-8D), (4-4D-8D) with using RD_QUAD_IO[7:0] Read Flash mode (with 2-Byte CMD): (1-8-8), (8-8-8), (8D-8D-8D), (4D-4D-4D) with using RD_FAST_SINGLE_IO[15:0] (always using FBAUD) Write Flash mode: (1-4-8), (4-4-8) with using WR_QUAD_IO[7:0] Write Flash mode (with 2-Byte CMD): (1-8-8), (8-8-8), (8D-8D-8D) with using WR_SINGLE_IO[15:0] */
+#define BIT_PRM_EN                 ((u32)0x00000001 << 11)         /*!<R/W 0x0  Set to enable SPIC performance read mode in Auto Mode. RXI-312 SPIC will auto exit performance read mode before auto write or enter to user mode. Enter PRM Flow: Set CR_VALID_CMD[11] (PRM_EN) with CR_VALID_CMD[4] (RD_QUAD_IO) or with (CR_VALID_CMD[0] and CR_VALID_CMD[12]) Set CR_READ_QUAD_ADDR_DATA[23:16] (PRM_VALUE) and [7:0] (RD_QUAD_IO_CMD) Set correct Dummy Cycle, and Valid Command then access in Auto Mode address range If PRM_EN, at 1st time Auto Rd, it will access with CMD, and store this condition. At 2nd Auto Rd or later, it will access without CMD but with Address and Mode Value. Our SPIC will check PRM_VALUE (CR_READ_QUAD_ADDR_DATA [23:16]), if PRM_VALUE ==0x00 (not a valid PRM value), and PRM_EN is set, SPIC will always access SPI Flash with (CMD+ADDR+MODE+DUMMY+...) format. */
+#define BIT_RM_WEN                 ((u32)0x00000001 << 10)         /*!<R/W 0x0  Remove write enable command in auto write. */
 #define BIT_RM_RDSR                ((u32)0x00000001 << 9)          /*!<R/W 0x0  Remove read status register in auto write. */
 #define BIT_WR_QUAD_II             ((u32)0x00000001 << 8)          /*!<R/W VALID_CMD_DEF[8]  Indicate quad address/data write is a valid command to execute. (known as (1-4-4)) */
 #define BIT_WR_QUAD_I              ((u32)0x00000001 << 7)          /*!<R/W VALID_CMD_DEF[7]  Indicate quad data write is a valid command to execute. (known as (1-1-4)) */
@@ -723,9 +676,9 @@ Encrypted_Date: generated date  Contain the decimal value of SPIC version. (Afte
  * @brief Device info
  * @{
  *****************************************************************************/
-#define BIT_DATA_UNIT_2B           ((u32)0x00000001 << 12)          /*!<R/W 0x0  Set (1) when the SPI device stores 2-byte data for each address. */
-#define BIT_JEDEC_P2CMF            ((u32)0x00000001 << 11)          /*!<R/W 0x0  Set (1) when the SPI cmd is JEDEC Profile 2.0 Command Modifier Formats. (6-byte command and address) */
-#define BIT_PSRAM                  ((u32)0x00000001 << 10)          /*!<R/W 0x0  Set (1) when the SPI device is PSRAM. PSRAM will disable WEN and RDSR in auto write. */
+#define BIT_DATA_UNIT_2B           ((u32)0x00000001 << 12)         /*!<R/W 0x0  Set (1) when the SPI device stores 2-byte data for each address. */
+#define BIT_JEDEC_P2CMF            ((u32)0x00000001 << 11)         /*!<R/W 0x0  Set (1) when the SPI cmd is JEDEC Profile 2.0 Command Modifier Formats. (6-byte command and address) */
+#define BIT_PSRAM                  ((u32)0x00000001 << 10)         /*!<R/W 0x0  Set (1) when the SPI device is PSRAM. PSRAM will disable WEN and RDSR in auto write. */
 #define BIT_NAND_FLASH             ((u32)0x00000001 << 9)          /*!<R/W 0x0  Set (1) when the SPI device is NAND Flash. (not support yet) */
 #define BIT_NOR_FLASH              ((u32)0x00000001 << 8)          /*!<R/W 0x1  Set (1) when the SPI device is NOR Flash. */
 #define BIT_RD_PAGE_EN             ((u32)0x00000001 << 5)          /*!<R/W 0x0  Enable SPIC to chop the burst read command across page boundaries in auto mode. */
@@ -740,13 +693,13 @@ Encrypted_Date: generated date  Contain the decimal value of SPIC version. (Afte
  * @brief Timing parameters
  * @{
  *****************************************************************************/
-#define MASK_CS_TCEM               ((u32)0x000000FF << 24)          /*!<R/W 0x0  Set to chop auto cmd when CSN low pulse width = (CS_TCEM*32) bus_clk. If set CS_TCEM = 0 will disable this function. ex. PSRAM tCEM = 4us, SPIC frequency = 100Mhz. CS_TCEM = ((4000 ns/10 ns)/32) - BYTE_DELAY = 12 (0xc) - BYTE_DELAY If ((16*baud_rate)/data_channel) <=32. BYTE_DELAY = 0. If ((16*baud_rate)/data_channel) > 32. BYTE_DELAY = (((16*baud_rate)/data_channel) - 32)/32. ex. If baud_rate = 3, data_channel = 1. BYTE_DELAY = (((16*3)/1) - 32)/32 = 16/32 = 0.5 Therefore, BYTE_DELAY should be 1 in this example. */
+#define MASK_CS_TCEM               ((u32)0x000000FF << 24)         /*!<R/W 0x0  Set to chop auto cmd when CSN low pulse width = (CS_TCEM*32) bus_clk. If set CS_TCEM = 0 will disable this function. ex. PSRAM tCEM = 4us, SPIC frequency = 100Mhz. CS_TCEM = ((4000 ns/10 ns)/32) - BYTE_DELAY = 12 (0xc) - BYTE_DELAY If ((16*baud_rate)/data_channel) <=32. BYTE_DELAY = 0. If ((16*baud_rate)/data_channel) > 32. BYTE_DELAY = (((16*baud_rate)/data_channel) - 32)/32. ex. If baud_rate = 3, data_channel = 1. BYTE_DELAY = (((16*3)/1) - 32)/32 = 16/32 = 0.5 Therefore, BYTE_DELAY should be 1 in this example. */
 #define CS_TCEM(x)                 ((u32)(((x) & 0x000000FF) << 24))
 #define GET_CS_TCEM(x)             ((u32)(((x >> 24) & 0x000000FF)))
-#define MASK_CS_SEQ_TIMEOUT        ((u32)0x000000FF << 16)          /*!<R/W 0x10  The timeout setting of auto command after sequential read command. If set CS_SEQ_TIMEOUT = 0x00 will disable this function. If set CS_SEQ_TIMEOUT > 0x00, SPIC will exit sequential transaction read and inactive CS when there is no auto read/write command for (CS_SEQ_TIMEOUT *4) bus_clocks. */
+#define MASK_CS_SEQ_TIMEOUT        ((u32)0x000000FF << 16)         /*!<R/W 0x10  The timeout setting of auto command after sequential read command. If set CS_SEQ_TIMEOUT = 0x00 will disable this function. If set CS_SEQ_TIMEOUT > 0x00, SPIC will exit sequential transaction read and inactive CS when there is no auto read/write command for (CS_SEQ_TIMEOUT *4) bus_clocks. */
 #define CS_SEQ_TIMEOUT(x)          ((u32)(((x) & 0x000000FF) << 16))
 #define GET_CS_SEQ_TIMEOUT(x)      ((u32)(((x >> 16) & 0x000000FF)))
-#define MASK_CS_ACTIVE_HOLD        ((u32)0x0000000F << 12)          /*!<R/W 0x00  For Flash chip select active hold time after SCLK rising edge (refer to tSLCH/CHSH, tCSS/tCSH) Note: Wait most 4 bus_clk cycles before CS inactive. (Implement CS_ACTIVE_Hold timing only, CS_ACTIVE_Setup timing using D-PHY to shift) */
+#define MASK_CS_ACTIVE_HOLD        ((u32)0x0000000F << 12)         /*!<R/W 0x00  For Flash chip select active hold time after SCLK rising edge (refer to tSLCH/CHSH, tCSS/tCSH) Note: Wait most 4 bus_clk cycles before CS inactive. (Implement CS_ACTIVE_Hold timing only, CS_ACTIVE_Setup timing using D-PHY to shift) */
 #define CS_ACTIVE_HOLD(x)          ((u32)(((x) & 0x0000000F) << 12))
 #define GET_CS_ACTIVE_HOLD(x)      ((u32)(((x >> 12) & 0x0000000F)))
 #define MASK_CS_H_WR_DUM_LEN       ((u32)0x0000003F << 6)          /*!<R/W CS_H_WR_DUM  Dummy cycle between sending write command to SPI Flash. Using the dummy cycles to avoid the timing violation of CS high time. */
@@ -792,16 +745,43 @@ Encrypted_Date: generated date  Contain the decimal value of SPIC version. (Afte
  * @brief Page Read Command of NAND Flash
  * @{
  *****************************************************************************/
-#define MASK_PAGE_RD_ADDR_LEN      ((u32)0x00000003 << 18)          /*!<R/W 0x3  Indicate number of bytes in address phase in page read command. */
+#define MASK_PAGE_RD_ADDR_LEN      ((u32)0x00000003 << 18)         /*!<R/W 0x3  Indicate number of bytes in address phase in page read command. */
 #define PAGE_RD_ADDR_LEN(x)        ((u32)(((x) & 0x00000003) << 18))
 #define GET_PAGE_RD_ADDR_LEN(x)    ((u32)(((x >> 18) & 0x00000003)))
-#define MASK_PAGE_RD_CH            ((u32)0x00000003 << 16)          /*!<R/W 0x0  Indicate channel number of command and address phase in transmitting page read command. 0: single channel 1: dual channels 2: quad channels 3: octal channel */
+#define MASK_PAGE_RD_CH            ((u32)0x00000003 << 16)         /*!<R/W 0x0  Indicate channel number of command and address phase in transmitting page read command. 0: single channel 1: dual channels 2: quad channels 3: octal channel */
 #define PAGE_RD_CH(x)              ((u32)(((x) & 0x00000003) << 16))
 #define GET_PAGE_RD_CH(x)          ((u32)(((x >> 16) & 0x00000003)))
 #define MASK_PAGE_RD_CMD           ((u32)0x000000FF << 0)          /*!<R/W 0x13  Indicate SPI Flash command value of page read command */
 #define PAGE_RD_CMD(x)             ((u32)(((x) & 0x000000FF) << 0))
 #define GET_PAGE_RD_CMD(x)         ((u32)(((x >> 0) & 0x000000FF)))
 /** @} */
+
+#ifdef CONFIG_DM_SPI
+struct ameba_spi_platdata {
+	uint deactivate_delay_us;       /* Delay to wait after deactivate */
+};
+
+struct ameba_spi {
+	struct spi_slave *slave;
+	void *regs;
+	unsigned int mode;
+	unsigned long last_transaction_us;
+};
+
+typedef struct {
+	u8 addr_ch;
+	u8 data_ch;
+	u8 tmod;
+} spic_mode;
+
+#else
+struct ameba_spi {
+	struct spi_slave slave;
+	void *regs;
+	void *comp_param;
+};
+
+#endif
 
 /*
  * This is the structure used for accessing the spi_flash register
@@ -814,29 +794,29 @@ struct spi_flash_portmap {
  * use the following equation.
  * offset = (channel_num * 0x058) + channel_0 offset
  */
-	volatile uint32_t ctrlr0;    /* Control Reg 0           (0x000) */
+	volatile uint32_t ctrlr0;		/* Control Reg 0           (0x000) */
 	volatile uint32_t rx_ndf;
-	volatile uint32_t ssienr;    /* SPIC enable Reg1        (0x008) */
+	volatile uint32_t ssienr;		/* SPIC enable Reg1        (0x008) */
 	volatile uint32_t rsvd0;
-	volatile uint32_t ser;       /* Slave enable Reg        (0x010) */
+	volatile uint32_t ser;			/* Slave enable Reg        (0x010) */
 	volatile uint32_t baudr;
-	volatile uint32_t txftlr;    /* TX_FIFO threshold level (0x018) */
+	volatile uint32_t txftlr;		/* TX_FIFO threshold level (0x018) */
 	volatile uint32_t rxftlr;
-	volatile uint32_t txflr;     /* TX_FIFO threshold level (0x020) */
+	volatile uint32_t txflr;		/* TX_FIFO threshold level (0x020) */
 	volatile uint32_t rxflr;
-	volatile uint32_t sr;        /* Destination Status Reg  (0x028) */
+	volatile uint32_t sr;			/* Destination Status Reg  (0x028) */
 	volatile uint32_t imr;
-	volatile uint32_t isr;       /* Interrupt Stauts Reg    (0x030) */
+	volatile uint32_t isr;			/* Interrupt Stauts Reg    (0x030) */
 	volatile uint32_t risr;
-	volatile uint32_t txoicr;    /* TX_FIFO overflow_INT clear (0x038) */
+	volatile uint32_t txoicr;		/* TX_FIFO overflow_INT clear (0x038) */
 	volatile uint32_t rxoicr;
-	volatile uint32_t rxuicr;    /* RX_FIFO underflow_INT clear (0x040) */
+	volatile uint32_t rxuicr;		/* RX_FIFO underflow_INT clear (0x040) */
 	volatile uint32_t msticr;
-	volatile uint32_t icr;       /* Interrupt clear Reg     (0x048) */
+	volatile uint32_t icr;			/* Interrupt clear Reg     (0x048) */
 	volatile uint32_t dmacr;
-	volatile uint32_t dmatdlr;   /* DMA TX_data level       (0x050) */
+	volatile uint32_t dmatdlr;		/* DMA TX_data level       (0x050) */
 	volatile uint32_t dmardlr;
-	volatile uint32_t idr;       /* Identiation Scatter Reg (0x058) */
+	volatile uint32_t idr;			/* Identiation Scatter Reg (0x058) */
 	volatile uint32_t spi_flash_version;
 	union{
 		volatile uint8_t  byte;
@@ -844,54 +824,49 @@ struct spi_flash_portmap {
 		volatile uint32_t word;
 	} dr[32];
 	volatile uint32_t rd_fast_single;
-	volatile uint32_t rd_dual_o; /* Read dual data cmd Reg  (0x0e4) */
+	volatile uint32_t rd_dual_o;	/* Read dual data cmd Reg  (0x0e4) */
 	volatile uint32_t rd_dual_io;
-	volatile uint32_t rd_quad_o; /* Read quad data cnd Reg  (0x0ec) */
+	volatile uint32_t rd_quad_o;	/* Read quad data cnd Reg  (0x0ec) */
 	volatile uint32_t rd_quad_io;
-	volatile uint32_t wr_single; /* write single cmd Reg    (0x0f4) */
+	volatile uint32_t wr_single;	/* write single cmd Reg    (0x0f4) */
 	volatile uint32_t wr_dual_i;
-	volatile uint32_t wr_dual_ii;/* write dual addr/data cmd(0x0fc) */
+	volatile uint32_t wr_dual_ii;	/* write dual addr/data cmd(0x0fc) */
 	volatile uint32_t wr_quad_i;
-	volatile uint32_t wr_quad_ii;/* write quad addr/data cnd(0x104) */
+	volatile uint32_t wr_quad_ii;	/* write quad addr/data cnd(0x104) */
 	volatile uint32_t wr_enable;
-	volatile uint32_t rd_status; /* read status cmd Reg     (0x10c) */
+	volatile uint32_t rd_status;	/* read status cmd Reg     (0x10c) */
 	volatile uint32_t ctrlr2;
-	volatile uint32_t fbaudr;    /* fast baud rate Reg      (0x114) */
+	volatile uint32_t fbaudr;		/* fast baud rate Reg      (0x114) */
 	volatile uint32_t user_length;
-	volatile uint32_t auto_length; /* Auto addr length Reg  (0x11c) */
+	volatile uint32_t auto_length;	/* Auto addr length Reg  (0x11c) */
 	volatile uint32_t valid_cmd;
-	volatile uint32_t flash_size; /* Flash size Reg         (0x124) */
+	volatile uint32_t flash_size;	/* Flash size Reg         (0x124) */
 	volatile uint32_t flush_fifo;
-	volatile uint32_t dum_byte;                               /*!< DUMMY BYTE VALUE Register,  Address offset: 0X12C */
-	volatile uint32_t tx_ndf;                                 /*!< TX_NDF Register,  Address offset: 0X130 */
-	volatile uint32_t device_info;                            /*!< DEVICE INFO Register,  Address offset: 0X134 */
-	volatile uint32_t tpr0;                                   /*!< TIMING PARAMETERS Register,  Address offset: 0X138 */
-	volatile uint32_t auto_length2;                           /*!< AUTO ADDRESS LENGTH REGISTER 2 Register,  Address offset: 0X13C */
-	volatile uint32_t rsvd1[16];                              /*!<  Reserved,  Address offset:0x140-0x17C */
+	volatile uint32_t dum_byte;		/* DUMMY BYTE VALUE Register,  Address offset: 0X12C */
+	volatile uint32_t tx_ndf;		/* TX_NDF Register,  Address offset: 0X130 */
+	volatile uint32_t device_info;	/* DEVICE INFO Register,  Address offset: 0X134 */
+	volatile uint32_t tpr0;			/* TIMING PARAMETERS Register,  Address offset: 0X138 */
+	volatile uint32_t auto_length2;	/* AUTO ADDRESS LENGTH REGISTER 2 Register,  Address offset: 0X13C */
+	volatile uint32_t rsvd1[16];	/* Reserved,  Address offset:0x140-0x17C */
 	union {
 		volatile uint8_t  byte;
 		volatile uint16_t half;
 		volatile uint32_t word;
 	} st_dr[16];
-	volatile  uint32_t stflr;                                  /*!< STATUS FIFO LEVEL REGISTER,  Address offset: 0X1C0 */
-	volatile uint32_t rsvd2[3];                               /*!<  Reserved,  Address offset:0x1C4-0x1CC */
-	volatile uint32_t page_read;                              /*!< PAGE READ COMMAND OF NAND FLASH Register,  Address offset: 0X1D0 */
+	volatile  uint32_t stflr;		/* STATUS FIFO LEVEL REGISTER,  Address offset: 0X1C0 */
+	volatile uint32_t rsvd2[3];		/* Reserved,  Address offset:0x1C4-0x1CC */
+	volatile uint32_t page_read;	/* PAGE READ COMMAND OF NAND FLASH Register,  Address offset: 0X1D0 */
 };
 
 struct spi_flash_param {
 	uint32_t spi_flash_num_slaves;		/* slaves number */
 	uint32_t spi_flash_tx_fifo_depth;	/* TX fifo depth number */
 	uint32_t spi_flash_rx_fifo_depth;	/* RX fifo depth number */
-	uint32_t spi_flash_idr;			/* ID code */
-	uint32_t spi_flash_scpol;		/* Serial clock polarity */
-	uint32_t spi_flash_scph;		/* Serial clock phase */
+	uint32_t spi_flash_idr;				/* ID code */
+	uint32_t spi_flash_scpol;			/* Serial clock polarity */
+	uint32_t spi_flash_scph;			/* Serial clock phase */
 	uint32_t spi_flash_clk_period;		/* serial clock period */
 	uint32_t spi_flash_version_id;		/* spi flash ID */
 };
-
-#ifdef CONFIG_DM_SPI
-void spi_cs_activate(struct udevice *uflash);
-void spi_cs_deactivate(struct udevice *uflash);
-#endif
 
 #endif

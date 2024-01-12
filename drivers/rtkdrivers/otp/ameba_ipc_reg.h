@@ -1,12 +1,10 @@
-/* SPDX-License-Identifier:  GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0+
 /*
- * Derived from many drivers using ameba IPC device.
- *
- * Copyright (C) 2020-2021 Realsil <andrew_su@realsil.com.cn>
- *
- * RTK IPC(Inter Process Communication) driver for Ameba IPC.
- *
- */
+* Realtek IPC support
+*
+* Copyright (C) 2023, Realtek Corporation. All rights reserved.
+*/
+
 #ifndef __AMEBA_IPC_REG_H__
 #define __AMEBA_IPC_REG_H__
 /* -------------------------------- Includes -------------------------------- */
@@ -39,7 +37,7 @@
  * the port and channel memory mapping is below:
  * |<--8-->|<--8-->|<--8-->|<--8-->|<--8-->|<--8-->|
  * | AP2NP | AP2LP | NP2AP | NP2LP | LP2AP | LP2NP |
- * The unit is not byte, and is the size of ipc_msg_struct_t.
+ * The unit is not byte, and is the size of ipc_msg_struct.
  */
 #define BUF_AP2NP_IDX(ch) (16 * 2 + 8 + ch)
 #define BUF_AP2LP_IDX(ch) (16 * 2 + 0 + ch)

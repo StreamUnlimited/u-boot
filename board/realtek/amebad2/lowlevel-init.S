@@ -1,4 +1,9 @@
-/* Memory sub-system initialization code */
+// SPDX-License-Identifier: GPL-2.0+
+/*
+* Realtek Ameba board low level initialization
+*
+* Copyright (C) 2023, Realtek Corporation. All rights reserved.
+*/
 
 #include <config.h>
 #include <linux/linkage.h>
@@ -23,13 +28,13 @@ ENTRY(lowlevel_init)
 	bne	1b
 
 	ldr     r0, =BSP_CCI_SLAVE1
-        ldr     r1, =CCI_ENABLE_REQ
-        str     r1, [r0]
+	ldr     r1, =CCI_ENABLE_REQ
+	str     r1, [r0]
 
-        ldr     r0, =BSP_CCI_STATUS
-2:      ldr     r1, [r0]
-        tst     r1, #0x1
-        bne     2b
+	ldr     r0, =BSP_CCI_STATUS
+2:	ldr     r1, [r0]
+	tst     r1, #0x1
+	bne     2b
 #endif
 
 /* amebad2 platform is a7, no need use ifdef */

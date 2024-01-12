@@ -1,8 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
- * Realtek Semiconductor Corp.
- *
- * Copyright 2012  Viller Hsiao (villerhsiao@realtek.com)
- */
+* Realtek Ameba board support
+*
+* Copyright (C) 2023, Realtek Corporation. All rights reserved.
+*/
 
 #include <common.h>
 #include <config.h>
@@ -120,10 +121,8 @@ int checkboard(void)
 	int is_boot_from_nor;
 	int rl_ver;
 
-	printf("\nAmeba Platform -- ARM Cortex-A\n");
-
 	rl_ver = rtk_misc_get_rl_version();
-	printf("SoC RL version: %d\n", rl_ver);
+	printf("SoC Version: %d\n", rl_ver);
 
 	is_boot_from_nor = syscfg_is_boot_from_nor();
 	if (is_boot_from_nor) {
@@ -147,7 +146,7 @@ int checkboard(void)
  */
 int print_cpuinfo(void)
 {
-	puts("CPU: Ameba SOC");
+	printf("CPU: ARM Cortex-A\n");
 
 	return 0;
 }
@@ -161,13 +160,14 @@ int init_dm_spi_flash_ameba(void)
 
 	uclass_first_device(UCLASS_SPI_FLASH, &dev);
 	if (!dev) {
-		pr_debug("ameba flash init failed");
+		pr_debug("Ameba flash init failed\n");
 		return 1;
 	}
+
 	while (strcmp(dev->name, flash_name) != 0) {
 		uclass_next_device(&dev);
 		if (!dev) {
-			pr_debug("ameba flash init failed");
+			pr_debug("Ameba flash init failed\n");
 			return 1;
 		}
 	}

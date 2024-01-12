@@ -1,3 +1,10 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+* Realtek AVB support
+*
+* Copyright (C) 2023, Realtek Corporation. All rights reserved.
+*/
+
 #include <stdio.h>
 #include <string.h>
 #include <env.h>
@@ -18,7 +25,7 @@
 #include <../lib/libavb/avb_sha.h>
 
 #define	CERT_VBMETA_PK_HASH_OFFSET		0xd8
-#define VBMETA_ROLLBACK_INDEX_OFFSET		0x70
+#define VBMETA_ROLLBACK_INDEX_OFFSET	0x70
 #define ROLLBACK_INDEX_BYTES			8
 #define EFUSE_ROLLBACK_INDEX_OFFSET		0x390
 #define ROLLBACK_EFUSE_BYTES			32
@@ -120,17 +127,17 @@ static int realtek_avb_sha(unsigned long image_buf,
 		cal_digest = avb_sha512_final(&sha512_ctx);
 		cal_digest_len = AVB_SHA512_DIGEST_SIZE;
 	} else {
-		printf("Unsupported hash algorithm.\n");
+		printf("Unsupported hash algorithm\n");
 		return CMD_RET_FAILURE;
 	}
 
 	if (cal_digest_len != digest_len) {
-		printf("Digest in descriptor is not of expected size.\n");
+		printf("Digest in descriptor is not of expected size\n");
 		return CMD_RET_FAILURE;
 	}
 
 	if (avb_safe_memcmp(cal_digest, digest, digest_len) != 0) {
-		printf("Hash of data does not match digest in descriptor.\n");
+		printf("Hash of data does not match digest in descriptor\n");
 		return  CMD_RET_FAILURE;
 	}
 
@@ -159,7 +166,7 @@ int realtek_avb_support(
 		AvbDescriptor desc;
 
 		if (!avb_descriptor_validate_and_byteswap(descriptors[n], &desc)) {
-			printf("Descriptor is invalid.\n");
+			printf("Error: Invalid descriptor\n");
 			ret = CMD_RET_FAILURE;
 			goto out;
 		}
@@ -169,7 +176,7 @@ int realtek_avb_support(
 			AvbHashDescriptor hash_desc;
 
 			if (!avb_hash_descriptor_validate_and_byteswap((const AvbHashDescriptor*)descriptors[n], &hash_desc)) {
-				printf("AVB_SLOT_VERIFY_RESULT_ERROR_INVALID_METADATA\n");
+				printf("Error: AVB_SLOT_VERIFY_RESULT_ERROR_INVALID_METADATA\n");
 				ret = CMD_RET_FAILURE;
 				goto out;
 			}
@@ -200,7 +207,7 @@ int realtek_avb_support(
 
 			if (!avb_chain_partition_descriptor_validate_and_byteswap(
 					(AvbChainPartitionDescriptor*)descriptors[n], &chain_desc)) {
-				printf("Chain partition descriptor is invalid.\n");
+				printf("Error: Invalid chain partition descriptor\n");
 				ret = CMD_RET_FAILURE;
 				goto out;
 			}
@@ -208,7 +215,7 @@ int realtek_avb_support(
 			partition_name = ((const uint8_t*)descriptors[n]) + sizeof(AvbChainPartitionDescriptor);
 			if (memcmp(target_partition_kernel, partition_name, strlen(target_partition_kernel)) == 0) {
 				if (chain_desc.rollback_index_location == 0) {
-					printf("Chain partition has invalid, error in rollback_index_location field.\n");
+					printf("Error: Invalid chain partition, rollback index location error\n");
 					ret = CMD_RET_FAILURE;
 					goto out;
 				}
@@ -225,7 +232,7 @@ int realtek_avb_support(
 			if (!avb_kernel_cmdline_descriptor_validate_and_byteswap(
 					(AvbKernelCmdlineDescriptor*)descriptors[n],
 					&kernel_cmdline_desc)) {
-				printf("Kernel cmdline descriptor is invalid.\n");
+				printf("Error: Invalid kernel cmdline descriptor\n");
 				ret = CMD_RET_FAILURE;
 				goto out;
 			}
@@ -245,22 +252,22 @@ int realtek_avb_support(
 	}
 
 	if (!kernel_param.digest_len) {
-		printf("Warning: kernel partition name not matched. Nothing to be verified.");
+		printf("Warning: kernel partition name not matched. Nothing to be verified");
 		ret = CMD_RET_FAILURE;
 		goto out;
 	}
 	if (realtek_avb_sha(ddr_kernel_addr, kernel_param.image_size, kernel_param.hash_algorithm, kernel_param.salt,
 		kernel_param.salt_len, kernel_param.digest, kernel_param.digest_len) == CMD_RET_SUCCESS) {
-        printf("Kernel Image verified success!\n");
+        printf("Kernel Image verified success\n");
 		ret = CMD_RET_SUCCESS;
 	} else {
-		printf("Error: kernel partition sha verify failed.\n");
+		printf("Error: kernel partition sha verify failed\n");
 		ret = CMD_RET_FAILURE;
 		goto out;
 	}
 
 	if (!dtb_param.digest_len) {
-		printf("Warning: dtb partition name not matched. Nothing to be verified.");
+		printf("Warning: DTB partition name not matched, nothing to be verified\n");
 		ret = CMD_RET_FAILURE;
 		goto out;
 	}
@@ -269,7 +276,7 @@ int realtek_avb_support(
         printf("DTB/FDT Image verified success!\n");
 		ret = CMD_RET_SUCCESS;
 	} else {
-		printf("Error: dtb partition sha verify failed.\n");
+		printf("Error: DTB partition SHA verify failed\n");
 		ret = CMD_RET_FAILURE;
 		goto out;
 	}
@@ -326,7 +333,7 @@ int efuse_count_zeros(u8 *efuse_vbmeta_rollback)
 	return rollback;
 }
 
-/* Efuse 0x390~0x3B0 is for vbmeta rollback index. */
+/* Efuse 0x390~0x3B0 is for VBMeta rollback index. */
 /* The maximum version is 256(0x100). */
 int realtek_linux_anti_rollback(u8 *vbmeta_version)
 {
@@ -339,8 +346,7 @@ int realtek_linux_anti_rollback(u8 *vbmeta_version)
 	if ((*(vbmeta_version + ROLLBACK_INDEX_BYTES - 2) == 1) && !(*(vbmeta_version + ROLLBACK_INDEX_BYTES - 1))) {
 		vbmeta_desc_rollback = 256;
 	} else if (*(vbmeta_version + ROLLBACK_INDEX_BYTES - 2) > 1) {
-		printf("Version is not supported.\n");
-		printf("Only 32 bytes in OTP is assigned for vbmeta rollback index. the maximum rollback index is 256.\n");
+		printf("Error: Invalid VBMeta version, 32 OTP bytes are reserved for VBMeta rollback index with max value 256\n");
 		return CMD_RET_FAILURE;
 	} else {
 		vbmeta_desc_rollback = *(vbmeta_version + ROLLBACK_INDEX_BYTES - 1);
@@ -354,7 +360,7 @@ int realtek_linux_anti_rollback(u8 *vbmeta_version)
 	} else if (efuse_vbmeta_rollback < vbmeta_desc_rollback) {
 		u8 new_efuse_rollback[ROLLBACK_EFUSE_BYTES];
 		ret = CMD_RET_SUCCESS;
-		printf("New Version Provided.\n");
+		printf("New VBMeta version provided\n");
 		efuse_write_zeros(vbmeta_desc_rollback, new_efuse_rollback);
 		ret = misc_write(dev, EFUSE_ROLLBACK_INDEX_OFFSET, new_efuse_rollback, ROLLBACK_EFUSE_BYTES);
 		if (ret < 0) {
@@ -362,8 +368,7 @@ int realtek_linux_anti_rollback(u8 *vbmeta_version)
 		}
 		return CMD_RET_SUCCESS;
 	} else {
-		printf("Version is not supported.\n");
-		printf("The version is too old.\n");
+		printf("Error: VBMeta version is too old\n");
 		return CMD_RET_FAILURE;
 	}
 }
@@ -388,10 +393,10 @@ int realtek_linux_verified_boot(
 	avb_sha256_update(&sha256_ctx, public_key, public_key_len);
 	cal_digest = avb_sha256_final(&sha256_ctx);
 	if (memcmp(cert_buf + CERT_VBMETA_PK_HASH_OFFSET, cal_digest, AVB_SHA256_DIGEST_SIZE)) {
-		printf("Public Key Hash has been doctored.\n");
+		printf("Error: Public key hash has been doctored\n");
 		return CMD_RET_FAILURE;
 	} else {
-		printf("Public Key Hash Verified Success!\n");
+		printf("Public key hash verified success\n");
 	}
 
 	/* rollback index verify. */
@@ -399,16 +404,16 @@ int realtek_linux_verified_boot(
 		vbmeta_version[i] = *(vbmeta_buf + VBMETA_ROLLBACK_INDEX_OFFSET + i);
 	}
 	if (realtek_linux_anti_rollback(vbmeta_version) != CMD_RET_SUCCESS) {
-		printf("Image Version Wrong. Boot has been rejected by rollback protection.\n ");
+		printf("Error: Wrong image version, boot has been rejected by rollback protection\n");
 		return CMD_RET_FAILURE;
 	} else {
-		printf("Rollback Index: Version PASS!\n");
+		printf("Rollback index verified success\n");
 	}
 
 	/* kernel and dtb verify. */
 	switch (vb_ret) {
 	case AVB_VBMETA_VERIFY_RESULT_OK:
-		printf("VbMeta Signature Verified Success!\n");
+		printf("VBMeta signature verified success\n");
 		if (realtek_avb_support(ddr_kernel_addr, ddr_dtb_addr, vbmeta_buf, vbmeta_len) == CMD_RET_SUCCESS){
 			avb_flag = 1;
 			return CMD_RET_SUCCESS;
@@ -416,14 +421,14 @@ int realtek_linux_verified_boot(
 			return CMD_RET_FAILURE;
 		}
 	case AVB_VBMETA_VERIFY_RESULT_OK_NOT_SIGNED:
-		printf("Image is not signed. Boot in unsecure mode.\n");
+		printf("Warning: Image is not signed, boot in non-secure mode\n");
 		return ret;
 	case AVB_VBMETA_VERIFY_RESULT_INVALID_VBMETA_HEADER:
 	case AVB_VBMETA_VERIFY_RESULT_UNSUPPORTED_VERSION:
 	case AVB_VBMETA_VERIFY_RESULT_HASH_MISMATCH:
 	case AVB_VBMETA_VERIFY_RESULT_SIGNATURE_MISMATCH:
 	default:
-		printf("Image is broken. Cannot boot.\n");
+		printf("Error: Image is broken, boot failed\n");
 		return CMD_RET_FAILURE;
 	}
 }

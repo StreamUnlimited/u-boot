@@ -1,3 +1,10 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+* Realtek misc functions
+*
+* Copyright (C) 2023, Realtek Corporation. All rights reserved.
+*/
+
 #ifndef _RTK_MISC_H_
 #define _RTK_MISC_H_
 

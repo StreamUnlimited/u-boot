@@ -1,1 +1,1 @@
-obj-$(CONFIG_OTP_RTK_AMEBA) += ameba_otp.o
+obj-$(CONFIG_OTP_RTK_AMEBA) += ameba_ipc.o ameba_otp.o

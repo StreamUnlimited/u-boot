@@ -1,17 +1,17 @@
-/* SPDX-License-Identifier:  GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0+
 /*
- * Derived from many drivers using ameba IPC device.
- *
- * Copyright (C) 2020 Realsil <andrew_su@realsil.com.cn>
- *
- * RTK IPC(Inter Process Communication) driver for Ameba IPC.
- *
- */
+* Realtek IPC support
+*
+* Copyright (C) 2023, Realtek Corporation. All rights reserved.
+*/
+
 #ifndef __AMEBA_IPC_H__
 #define __AMEBA_IPC_H__
 /* -------------------------------- Includes -------------------------------- */
 /* external head files */
 #include <linux/kernel.h>
+#include <linux/compat.h>
+#include <linux/completion.h>
 
 /* internal head files */
 
@@ -38,12 +38,12 @@ struct aipc_ch;
  *} IPC_MSG_STRUCT, *PIPC_MSG_STRUCT;
  * don't use typedef in linux advice.
  */
-typedef struct ipc_msg_struct {
+struct ipc_msg_struct {
 	u32 msg_type;
 	u32 msg;
 	u32 msg_len;
 	u32 rsvd;
-} ipc_msg_struct_t;
+};
 
 /*
  * This structure describes all the operations that can be done on the IPC
@@ -67,22 +67,61 @@ struct aipc_ch_ops {
  * 	configure this option, need to use ameba_ipc_channel_send_wait. otherwise
  * 	to use ameba_ipc_channel_send.
  */
-typedef enum aipc_ch_config {
+enum aipc_ch_config {
 	AIPC_CONFIG_NOTHING = (unsigned int)0x00000000,
 	AIPC_CONFIG_HANDSAKKE = (unsigned int)0x00000001
-} aipc_ch_config_t;
+};
 
 /*
  * structure to describe device reigisting channel, and it will be associated
  *	to a struct aipc_c.
  */
-typedef struct aipc_ch {
+struct aipc_ch {
 	struct udevice *pdev; /* to get the udevice for ipc device */
 	u32 port_id; /* port id for NP or LP */
 	u32 ch_id; /* channel number */
 	enum aipc_ch_config ch_config; /* configuration for channel */
 	struct aipc_ch_ops *ops; /* operations for channel */
 	void *priv_data; /* generic platform data pointer */
-} aipc_ch_t;
+};
+
+struct aipc_device {
+	spinlock_t lock; /* list lock */
+	struct udevice *dev; /* parent device */
+	struct aipc_port *pnp_port; /* pointer to NP port */
+	struct aipc_port *plp_port; /* pointer to LP port */
+	struct ipc_msg_struct *dev_mem; /* LP shared SRAM for IPC */
+	u32* preg_tx_data; /* mapping address of AIPC_REG_TX_DATA */
+	u32* preg_rx_data; /* mapping address of AIPC_REG_RX_DATA */
+	u32* preg_isr; /* mapping address of AIPC_REG_ISR */
+	u32* preg_imr; /* mapping address of AIPC_REG_IMR */
+	u32* preg_icr; /* mapping address of AIPC_REG_ICR */
+	u32 irq; /* irq number */
+	unsigned long irqflags; /* irq flags */
+};
+
+struct aipc_port {
+	struct list_head ch_list; /* channel list */
+	struct aipc_device *dev; /* parent device */
+	u32 port_id; /* port id for NP or LP */
+	const char *name; /* port name */
+	spinlock_t lock; /* port lock */
+	u32 free_chnl_num; /* free channel number in port */
+};
+
+struct aipc_ch_node {
+	struct list_head list; /* list to add the channel list */
+	struct aipc_port *port; /* pointer to ipc port */
+	struct ipc_msg_struct *ch_rmem; /* channel read shared SRAM for IPC */
+	struct ipc_msg_struct *ch_wmem; /* channel written shared SRAM for IPC */
+	struct aipc_ch *ch; /* customer regisiting channel */
+};
+
+struct aipc_ch *ameba_ipc_alloc_ch(int size_of_priv);
+int ameba_ipc_poll(struct aipc_device *pipc_dev);
+int ameba_ipc_channel_send(struct udevice *dev, struct aipc_ch *ch, struct ipc_msg_struct *pmsg, struct aipc_device *pipc_dev);
+int ameba_ipc_channel_register(struct udevice *dev, struct aipc_ch *ch, struct aipc_device *pipc_dev);
+int ameba_ipc_channel_unregister(struct udevice *dev, struct aipc_ch *ch, struct aipc_device *pipc_dev);
+int ameba_ipc_probe(struct udevice *dev, struct aipc_device *pipc_dev);
 
 #endif /* __AMEBA_IPC_H__ */
