@@ -40,6 +40,18 @@ int rtk_misc_get_rl_version(void)
 
 EXPORT_SYMBOL(rtk_misc_get_rl_version);
 
+int syscfg_get_secure_enable(void)
+{
+	u32 value0 = REG32(OTPC_REG_BASE + SEC_OTP_SYSCFG0);
+	u32 value1 = REG32(OTPC_REG_BASE + SEC_CFG2);
+
+	if ((value0 & SEC_BIT_LOGIC_SECURE_BOOT_EN) || (!(value1 & SEC_BIT_SECURE_BOOT_EN))) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
 static int syscfg_get_otp_boot_select(void)
 {
 	u32 reg = REG32(OTPC_REG_BASE + SEC_OTP_SYSCFG0);

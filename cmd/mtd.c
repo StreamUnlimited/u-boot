@@ -649,7 +649,7 @@ static int do_mtd_io_option(
 		argv_read[2] = argv[3];		// DDR dtb address
 		argv_read[3] = "r-vbmeta";
 		argv_read[4] = "-";
-		if (do_mtd_verified_boot(5, argv_read) != CMD_RET_SUCCESS){
+		if (syscfg_get_secure_enable() && do_mtd_verified_boot(5, argv_read) != CMD_RET_SUCCESS){
 			printf("linux verified boot: fail!\n");
 			printf("boot will be rejected!\n");
 			mtd_avb_reject_booting(5, argv_read);
@@ -675,7 +675,7 @@ static int do_mtd_io_option(
 		argv_read[2] = argv[3];		// DDR dtb address
 		argv_read[3] = "vbmeta";
 		argv_read[4] = "-";
-		if (do_mtd_verified_boot(5, argv_read) != CMD_RET_SUCCESS){
+		if (syscfg_get_secure_enable() && do_mtd_verified_boot(5, argv_read) != CMD_RET_SUCCESS){
 			printf("linux verified boot: fail!\n");
 			printf("boot will be rejected!\n");
 			mtd_avb_reject_booting(5, argv_read);

@@ -103,18 +103,20 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 		const u8* vbmeta_buf, u64 vbmeta_len,
 		const u8* cert_buf, u64 cert_buf_len);
 
-	if (strcmp(argv[1], "verify") == 0) {
-		realtek_linux_verified_boot(simple_strtoul(argv[2], NULL, 16), simple_strtoul(argv[3], NULL, 16),
-								(u8*)simple_strtoul(argv[4], NULL, 16), (u64)simple_strtoul(argv[5], NULL, 16),
-								(u8*)simple_strtoul(argv[6], NULL, 16), (u64)simple_strtoul(argv[7], NULL, 16));
+	if (syscfg_get_secure_enable()) {
+		if (strcmp(argv[1], "verify") == 0) {
+			realtek_linux_verified_boot(simple_strtoul(argv[2], NULL, 16), simple_strtoul(argv[3], NULL, 16),
+									(u8*)simple_strtoul(argv[4], NULL, 16), (u64)simple_strtoul(argv[5], NULL, 16),
+									(u8*)simple_strtoul(argv[6], NULL, 16), (u64)simple_strtoul(argv[7], NULL, 16));
 
-		argc-=7;
-		argv+=7;
-	}
+			argc-=7;
+			argv+=7;
+		}
 
-	if (avb_flag != 1) {
-		printf("Bootm fail! Please verify images correctly.\n");
-		return 0;
+		if (avb_flag != 1) {
+			printf("Bootm fail! Please verify images correctly.\n");
+			return 0;
+		}
 	}
 #endif
 
