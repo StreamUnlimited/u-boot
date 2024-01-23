@@ -62,9 +62,12 @@
         "elif test ${module_version} -eq 4; then " \
                 "echo \"INFO: will try to boot the default_l4 fit config\"; " \
                 "bootm ${loadaddr}#default_l4@1; " \
-        "else " \
+        "elif test ${module_version} -eq 5; then " \
                 "echo \"INFO: will try to boot the default_l5 fit config\"; " \
                 "bootm ${loadaddr}#default_l5@1; " \
+        "else " \
+                "echo \"INFO: will try to boot the default_l6 fit config\"; " \
+                "bootm ${loadaddr}#default_l6@1; " \
         "fi; " \
         "echo \"INFO: fit boot failed...\"; " \
         "echo \"INFO: resetting...\"; " \
