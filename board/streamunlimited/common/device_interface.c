@@ -2,6 +2,8 @@
 #include <asm/errno.h>
 #include <asm/saradc.h>
 #include <asm/gpio.h>
+#include <asm/io.h>
+#include <asm/arch/secure_apb.h>
 #include "device_interface.h"
 
 struct adc_map_entry {
@@ -322,6 +324,16 @@ int sue_device_detect(struct sue_device_info *device)
 	int ret, i;
 	u16 module_code = 0;
 	u16 carrier_msb_adc_value, carrier_lsb_adc_value;
+
+	/*
+	 * Enable pull-down on GPIOAO_9.
+	 * This is needed because module detection relies on Wi-Fi chip to be off.
+	 * If the Wi-Fi chip is on, it can supply some power to the module detection gpios
+	 * which then can falsly return 1 instead of 0 on some boards.
+	 * gpioAO[13:0] pull-up/down 13:0
+	 * gpioAO[13:0] pull-up/down enable 29:16
+	 */
+	clrsetbits_le32(P_AO_RTI_PULL_UP_REG, (1<<9), ((1<<9)<<16));
 
 	/*
 	 * Read GPIOs to form module code
