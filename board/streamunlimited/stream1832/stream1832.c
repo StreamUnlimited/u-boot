@@ -352,6 +352,15 @@ struct aml_i2c_platform g_aml_i2c_ports[] = {
 	{.master_i2c_speed=0},
 };
 
+static void board_gpio_init(void)
+{
+	/* 
+	 * Enable pull-down on GPIOZ_6 and GPIOZ_7
+	 * It's 3V3 pin connected to 1V8 on L6
+	 */
+	clrbits_le32(P_PAD_PULL_UP_REG3, (1<<6) | (1<<7));
+}
+
 static void board_i2c_init(void)
 {
 	extern void aml_i2c_set_ports(struct aml_i2c_platform *i2c_plat);
@@ -616,6 +625,8 @@ static int reset_cause(void)
 int board_init(void)
 {
 	int ret;
+
+	board_gpio_init();
 
 	sue_device_detect(&current_device);
 
