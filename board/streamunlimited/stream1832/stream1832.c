@@ -518,14 +518,6 @@ int board_axp313_init(void)
 	int ret = 0;
 
 	/*
-	 * Set the DCDC workmode of the DCDC2 (VDDCPU/VDD_ARM) to PWM only mode. The reason is
-	 * that per default the board boots in 1.2 GHz mode which requires the PWM only mode.
-	 * The automode leads to stability issues on 1.2 GHz and up. The workmode for lower
-	 * operating points will be handled by the kernel.
-	 */
-	ret |= axp313_set_dcdc_workmode(AXP313_DCDC1, AXP313_DCDC_WORKMODE_PWM);
-
-	/*
 	 * Also reset DCDC3 to 1.8 V ,This is also the default value of the AXP313 after power on.
 	 */
 	ret |= axp313_set_dcdc3(1800);
