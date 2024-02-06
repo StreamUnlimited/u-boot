@@ -160,8 +160,8 @@ int axp313_set_dcdc_workmode(enum axp313_dcdc_regulator id, int mode)
 	if (ret)
 		return ret;
 
-	reg = reg & ~(1 << (AXP313_DCDC3 - id));
-	reg |= mode << (AXP313_DCDC3 - id);
+	reg = reg & ~(1 << id);
+	reg |= mode << id;
 
 	return axp313_write(AXP313A_DCDC_DVM_PWM_CTL, reg);
 }
