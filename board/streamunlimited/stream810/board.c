@@ -516,8 +516,8 @@ int board_axp313_init(void)
 	/* Set DCDC1 to 1.１V */
 	ret |= axp313_set_dcdc1(1100);
 
-	/* Set DCDC2 to 0.85V so the VDD_SOC is 1V since there is a tweaking the voltage by HW */
-	ret |= axp313_set_dcdc2(850);
+	/* Set DCDC2 to 0.89V so the VDD_SOC is 1.0489V since there is a voltage divider in the feedback path */
+	ret |= axp313_set_dcdc2(890);
 
 	/* Set ALDO to 3.1V */
 	ret |= axp313_set_aldo1(AXP313_ALDO_3V3);
