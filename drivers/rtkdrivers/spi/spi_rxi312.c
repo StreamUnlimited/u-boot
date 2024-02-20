@@ -1,15 +1,17 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
- * Ameba SPI controller driver
- *
- * Copyright 2015  Jethro Hsu (jethro@realtek.com)
- *
- */
+* Realtek RXI312 SPIC support
+*
+* Copyright (C) 2023, Realtek Corporation. All rights reserved.
+*/
 
 #include <common.h>
 #include <log.h>
 #include <malloc.h>
 #include <spi.h>
 #include <asm/io.h>
+#include <dm/device_compat.h>
+#include <linux/delay.h>
 
 #include "spi_rxi312.h"
 
@@ -22,13 +24,14 @@ DECLARE_GLOBAL_DATA_PTR;
 #define RXI312_FIFO_LENGTH	32
 
 /* Get unaligned buffer size */
-#define UNALIGNED32(buf)	((4 - ((u32)(buf) & 0x3)) & 0x3)
+#define GET_UNALIGNED32_SIZE(buf)	((4 - ((u32)(buf) & 0x3)) & 0x3)
 
-void udelay(unsigned long usec);
+#ifdef CONFIG_DM_SPI
+static void spi_cs_activate(struct udevice *uflash);
+static void spi_cs_deactivate(struct udevice *uflash);
+#endif
 
-/*
- * This function is used to wait the spi_flash is not at busy state.
- */
+/* Wait until spi flash is not busy */
 static void spic_waitbusy(struct ameba_spi *dev, u32 WaitType)
 {
 	u32 BusyCheck = 0;
@@ -68,7 +71,7 @@ static void spic_usermode_en(struct ameba_spi *dev, u8 enable)
 
 #ifndef CONFIG_SPIC_RTK_AMEBA_NAND
 
-static int select_op(spic_mode *mode, uint8_t cmd)
+static int select_op(struct udevice *udev, spic_mode *mode, uint8_t cmd)
 {
 	int ret = 0;
 
@@ -127,7 +130,7 @@ static int select_op(spic_mode *mode, uint8_t cmd)
 		break;
 
 	default:
-		printf("WARNING: Unsupported NOR flash cmd: 0x%02X\n", cmd);
+		dev_warn(udev, "WARNING: Unsupported NOR flash cmd: 0x%02X\n", cmd);
 		ret = -1;
 		break;
 	}
@@ -137,17 +140,9 @@ static int select_op(spic_mode *mode, uint8_t cmd)
 
 #endif // #ifndef CONFIG_SPIC_RTK_AMEBA_NAND
 
-static int dw_spi_setup(struct ameba_spi *dev, unsigned int cs)
-{
-	/* spic is intialized by km4, no need to re-intialize it.
-	   Initialize it for other chips if need. */
-
-	return 0;
-}
-
 #ifdef CONFIG_SPIC_RTK_AMEBA_NAND
 
-static int select_nand_op(spic_mode *mode, uint8_t cmd)
+static int select_nand_op(struct udevice *udev, spic_mode *mode, uint8_t cmd)
 {
 	int ret = 0;
 
@@ -203,7 +198,7 @@ static int select_nand_op(spic_mode *mode, uint8_t cmd)
 		break;
 
 	default:
-		printf("WARNING: Unsupported NAND flash cmd: 0x%02X\n", cmd);
+		dev_warn(udev, "WARNING: Unsupported NAND flash cmd: 0x%02X\n", cmd);
 		ret = -1;
 		break;
 	}
@@ -213,6 +208,13 @@ static int select_nand_op(spic_mode *mode, uint8_t cmd)
 
 #endif // #ifdef CONFIG_SPIC_RTK_AMEBA_NAND
 
+static int do_spi_setup(struct ameba_spi *dev, unsigned int cs)
+{
+	/* SPIC is intialized by KM4, no need to re-intialize it. */
+
+	return 0;
+}
+
 static int do_spi_send(struct udevice *udev, const void *tx_data, unsigned int len, unsigned long flags)
 {
 	int ret = 0;
@@ -220,7 +222,7 @@ static int do_spi_send(struct udevice *udev, const void *tx_data, unsigned int l
 	struct spi_flash_portmap *spi_flash_map = dev->regs;
 	u32 ctrl0, value;
 	spic_mode mode = {0};
-	u8 *tx_buf = (u8*) tx_data;
+	u8 *tx_buf = (u8 *) tx_data;
 	u8 cmd = tx_buf[0];
 	u32 i = 0;
 	u32 j;
@@ -233,9 +235,9 @@ static int do_spi_send(struct udevice *udev, const void *tx_data, unsigned int l
 		spic_usermode_en(dev, 1);
 
 #ifdef CONFIG_SPIC_RTK_AMEBA_NAND
-		ret = select_nand_op(&mode, cmd);
+		ret = select_nand_op(udev, &mode, cmd);
 #else
-		ret = select_op(&mode, cmd);
+		ret = select_op(udev, &mode, cmd);
 #endif
 		if (ret) {
 			return ret;
@@ -246,10 +248,10 @@ static int do_spi_send(struct udevice *udev, const void *tx_data, unsigned int l
 		ctrl0 &= ~(TMOD(3) | CMD_CH(3) | ADDR_CH(3) | DATA_CH(3));
 		ctrl0 |= TMOD(mode.tmod) | ADDR_CH(mode.addr_ch) | DATA_CH(mode.data_ch);
 		spi_flash_map->ctrlr0 = ctrl0;
-		
+
 		value = spi_flash_map->user_length & ~MASK_USER_ADDR_LENGTH;
 		value |= USER_ADDR_LENGTH(len - 1);
-		
+
 #ifdef CONFIG_SPIC_RTK_AMEBA_NAND
 		/* Set DUM length */
 		if (mode.tmod == TMODE_TX) {
@@ -263,12 +265,13 @@ static int do_spi_send(struct udevice *udev, const void *tx_data, unsigned int l
 #else
 		value &= ~MASK_USER_RD_DUMMY_LENGTH;
 #endif
-		
+
 		spi_flash_map->user_length = value;
 
 		/* set flash_cmd: write cmd & address to fifo & addr is MSB */
-		for ( i = 0; i < len; i++)
+		for (i = 0; i < len; i++) {
 			spi_flash_map->dr[0].byte = tx_buf[i];
+		}
 
 		if (flags & SPI_XFER_END) {
 			spi_flash_map->tx_ndf = TX_NDF(0);
@@ -289,11 +292,11 @@ static int do_spi_send(struct udevice *udev, const void *tx_data, unsigned int l
 		/* Set TX_NDF: frame number of Tx data. */
 		spi_flash_map->tx_ndf = TX_NDF(len);
 		spi_flash_map->rx_ndf = RX_NDF(0);
-		
+
 		/* Enable SSIENR to start the transfer */
 		spi_flash_map->ssienr = BIT_SPIC_EN;
 
-		unaligned32_bytes = UNALIGNED32(tx_buf);
+		unaligned32_bytes = GET_UNALIGNED32_SIZE(tx_buf);
 		while ((i < unaligned32_bytes) && (i < len)) {
 			if (spi_flash_map->txflr <= RXI312_FIFO_LENGTH - 1) {
 				spi_flash_map->dr[0].byte = tx_buf[i++];
@@ -337,7 +340,7 @@ static int do_spi_recv(struct udevice *udev, const unsigned char *rx_data, unsig
 	u32 *aligned32_buf;
 	u32 unaligned32_bytes;
 	u32 fifo_level;
-	
+
 	/* Set RX_NDF: frame number of receiving data. TX_NDF should be set in both transmit mode and receive mode.
 		TX_NDF should be set to zero in receive mode to skip the TX_DATA phase. */
 	spi_flash_map->rx_ndf = RX_NDF(len);
@@ -346,7 +349,7 @@ static int do_spi_recv(struct udevice *udev, const unsigned char *rx_data, unsig
 	/* Enable SSIENR to start the transfer */
 	spi_flash_map->ssienr = BIT_SPIC_EN;
 
-	unaligned32_bytes = UNALIGNED32(rx_buf);
+	unaligned32_bytes = GET_UNALIGNED32_SIZE(rx_buf);
 	while ((i < unaligned32_bytes) && (i < len)) {
 		if (spi_flash_map->rxflr >= 1) {
 			rx_buf[i++] = spi_flash_map->dr[0].byte;
@@ -382,7 +385,7 @@ static int do_spi_recv(struct udevice *udev, const unsigned char *rx_data, unsig
 
 #ifdef CONFIG_DM_SPI
 
-int ameba_dm_spi_xfer(struct udevice *uflash, unsigned int bitlen, const void *dout, void *din, unsigned long flags)
+static int ameba_dm_spi_xfer(struct udevice *uflash, unsigned int bitlen, const void *dout, void *din, unsigned long flags)
 {
 	struct udevice *udev = dev_get_parent(uflash);
 	const unsigned char *tx_data = dout;
@@ -393,7 +396,7 @@ int ameba_dm_spi_xfer(struct udevice *uflash, unsigned int bitlen, const void *d
 	if (flags & SPI_XFER_BEGIN) {
 		spi_cs_activate(uflash);
 	}
-	
+
 	if (tx_data) {
 		do_spi_send(udev, tx_data, len, flags);
 	}
@@ -401,7 +404,7 @@ int ameba_dm_spi_xfer(struct udevice *uflash, unsigned int bitlen, const void *d
 	if (rx_data) {
 		do_spi_recv(udev, rx_data, len, flags);
 	}
-		
+
 	if (flags & SPI_XFER_END) {
 		spi_cs_deactivate(uflash);
 	}
@@ -409,7 +412,7 @@ int ameba_dm_spi_xfer(struct udevice *uflash, unsigned int bitlen, const void *d
 	return ret;
 }
 
-int ameba_dm_spi_ofdata_to_platdata(struct udevice *udev)
+static int ameba_dm_spi_ofdata_to_platdata(struct udevice *udev)
 {
 	struct ameba_spi_platdata *plat = udev->platdata;
 	const void *blob = gd->fdt_blob;
@@ -421,18 +424,20 @@ int ameba_dm_spi_ofdata_to_platdata(struct udevice *udev)
 	return 0;
 }
 
-int ameba_dm_spi_probe(struct udevice *udev)
+static int ameba_dm_spi_probe(struct udevice *udev)
 {
 	fdt_addr_t addr;
 	struct ameba_spi_platdata *plat = dev_get_platdata(udev);
 	struct ameba_spi *priv = dev_get_priv(udev);
 
-	if (!plat || !priv)
+	if (!plat || !priv) {
 		return -ENODEV;
+	}
 
 	addr = dev_read_addr(udev);
-	if (addr == FDT_ADDR_T_NONE)
+	if (addr == FDT_ADDR_T_NONE) {
 		return -EINVAL;
+	}
 
 	/* Convert 0x1fb0xxxx to 0xbfb0xxxx */
 #if defined(CONFIG_SOC_CPU_RLX) || defined(CONFIG_SOC_CPU_MIPS)
@@ -444,18 +449,18 @@ int ameba_dm_spi_probe(struct udevice *udev)
 	priv->last_transaction_us = timer_get_us();
 
 	/* Init flash */
-	dw_spi_setup(priv, 0);
+	do_spi_setup(priv, 0);
 
 	return 0;
 }
 
-int ameba_dm_spi_set_speed(struct udevice *udev, uint speed)
+static int ameba_dm_spi_set_speed(struct udevice *udev, uint speed)
 {
 	/* Do nothing */
 	return 0;
 }
 
-int ameba_dm_spi_set_mode(struct udevice *udev, uint mode)
+static int ameba_dm_spi_set_mode(struct udevice *udev, uint mode)
 {
 	struct ameba_spi *priv = dev_get_priv(udev);
 	struct spi_flash_portmap *spi_flash_map = priv->regs;
@@ -482,15 +487,16 @@ int ameba_dm_spi_set_mode(struct udevice *udev, uint mode)
 	}
 	priv->mode = mode;
 
-	printf("SPIC mode 0x%X\n", priv->mode);
+	dev_info(udev, "SPIC mode 0x%X\n", priv->mode);
 
 	return 0;
 }
 
-int ameba_flush_fifo(struct udevice *uflash)
+static int ameba_flush_fifo(struct udevice *uflash)
 {
-	if (!uflash)
+	if (!uflash) {
 		return -ENODEV;
+	}
 	struct ameba_spi *priv = dev_get_priv(uflash->parent);
 	struct spi_flash_portmap *spi_flash_map = priv->regs;
 
@@ -499,42 +505,44 @@ int ameba_flush_fifo(struct udevice *uflash)
 	return 0;
 }
 
-int ameba_dm_spi_claim_bus(struct udevice *uflash)
+static int ameba_dm_spi_claim_bus(struct udevice *uflash)
 {
 	ameba_flush_fifo(uflash);
 	return 0;
 }
 
-int ameba_dm_spi_release_bus(struct udevice *uflash)
+static int ameba_dm_spi_release_bus(struct udevice *uflash)
 {
 	return 0;
 }
 
-int ameba_dm_spi_cs_info(struct udevice *udev, uint cs, struct spi_cs_info *info)
+static int ameba_dm_spi_cs_info(struct udevice *udev, uint cs, struct spi_cs_info *info)
 {
 	/* Only allow device activity on CS 0 */
-	if (!cs)
+	if (!cs) {
 		return -ENODEV;
+	}
 	return 0;
 }
 
-void spi_cs_activate(struct udevice *uflash)
+static void spi_cs_activate(struct udevice *uflash)
 {
+	ulong delay_us;  /* The delay completed so far */
 	struct udevice *udev = uflash->parent;
 	struct ameba_spi_platdata *plat = dev_get_platdata(udev);
 	struct ameba_spi *priv = dev_get_priv(udev);
 
 	/* If it's too soon to do another transaction, wait */
 	if (plat->deactivate_delay_us && priv->last_transaction_us) {
-		ulong delay_us;         /* The delay completed so far */
 
 		delay_us = timer_get_us() - priv->last_transaction_us;
-		if (delay_us < plat->deactivate_delay_us)
+		if (delay_us < plat->deactivate_delay_us) {
 			udelay(plat->deactivate_delay_us - delay_us);
+		}
 	}
 }
 
-void spi_cs_deactivate(struct udevice *uflash)
+static void spi_cs_deactivate(struct udevice *uflash)
 {
 	struct udevice *udev = uflash->parent;
 	struct ameba_spi_platdata *plat = dev_get_platdata(udev);
@@ -545,8 +553,9 @@ void spi_cs_deactivate(struct udevice *uflash)
 	spi_flash_map->ssienr = 0;
 
 	/* Remember time of this transaction so we can honour the bus delay */
-	if (plat->deactivate_delay_us)
+	if (plat->deactivate_delay_us) {
 		priv->last_transaction_us = timer_get_us();
+	}
 }
 
 static int ameba_dm_spi_child_pre_probe(struct udevice *uflash)
@@ -574,8 +583,9 @@ static int ameba_dm_spi_child_post_bind(struct udevice *uflash)
 {
 	struct dm_spi_slave_platdata *plat = dev_get_parent_platdata(uflash);
 
-	if (dev_has_of_node(uflash) == false)
+	if (dev_has_of_node(uflash) == false) {
 		return 0;
+	}
 
 	return spi_slave_ofdata_to_platdata(uflash, plat);
 }
@@ -590,12 +600,12 @@ static const struct dm_spi_ops ameba_spi_ops = {
 };
 
 static const struct udevice_id ameba_spi_ids[] = {
-	{ .compatible = "realtek,rxi312-spi" },
+	{ .compatible = "realtek,rxi312" },
 	{ }
 };
 
 U_BOOT_DRIVER(ameba_spi) = {
-	.name   = "ameba_spi",
+	.name   = "realtek-rxi312",
 	.id     = UCLASS_SPI,
 	.of_match = ameba_spi_ids,
 	.ops    = &ameba_spi_ops,

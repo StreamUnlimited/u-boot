@@ -1,4 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0+
+/*
+* Realtek USB PHY support
+*
+* Copyright (C) 2023, Realtek Corporation. All rights reserved.
+*/
 
 #include <common.h>
 #include <clk.h>
@@ -92,7 +97,7 @@
 #define PHY_LOW_ADDR(x)									((x) & 0x0F)
 #define PHY_DATA_MASK									0xFF
 
-/* USB clocks */	
+/* USB clocks */
 #define REG_LSYS_FEN_GRP1								0x020C
 #define REG_LSYS_CKE_GRP1								0x0218
 #define REG_LSYS_CKE_GRP1								0x0218
@@ -107,16 +112,50 @@
 #define LSYS_BG_ALL(x)                                  ((u32)(((x) & 0x00000003) << 0))
 #define LSYS_GET_BG_ALL(x)                              ((u32)(((x >> 0) & 0x00000003)))
 
-#define usleep_range(a, b)								udelay((b))
-
-struct rtk_usbphy {
-	struct phy phy;
+struct rtk_usb_phy_t {
+	struct phy uphy;
 	fdt_addr_t clk_base;
 	fdt_addr_t hp_base;
 	fdt_addr_t addon_base;
 };
 
-static int rtk_load_vcontrol(uintptr_t dwc, u8 addr)
+struct rtk_usb_phy_cal_data_t {
+	u8 page;
+	u8 addr;
+	u8 val;
+};
+
+static const struct rtk_usb_phy_cal_data_t rtk_usb_cut_a_cal_data[] = {
+	{0x00, 0xE0, 0x9D},
+	{0x00, 0xE1, 0x19},
+	{0x00, 0xE2, 0xDB},
+	{0x00, 0xE4, 0x6D},
+	{0x01, 0xE5, 0x0A},
+	{0x01, 0xE6, 0xD8},
+	{0x02, 0xE7, 0x32},
+	{0x01, 0xE0, 0x04},
+	{0x01, 0xE0, 0x00},
+	{0x01, 0xE0, 0x04},
+
+	{0xFF, 0x00, 0x00}
+};
+
+static const struct rtk_usb_phy_cal_data_t rtk_usb_cut_b_cal_data[] = {
+	{0x00, 0xE0, 0x9D},
+	{0x00, 0xE1, 0x19},
+	{0x00, 0xE2, 0xDB},
+	{0x00, 0xE4, 0x6B},
+	{0x01, 0xE5, 0x0A},
+	{0x01, 0xE6, 0xD8},
+	{0x02, 0xE7, 0x32},
+	{0x01, 0xE0, 0x04},
+	{0x01, 0xE0, 0x00},
+	{0x01, 0xE0, 0x04},
+
+	{0xFF, 0x00, 0x00}
+};
+
+static int rtk_load_vcontrol(struct phy *p, uintptr_t dwc, u8 addr)
 {
 	u32 pvndctl = 0x0A300000;
 	u32 count = 0;
@@ -125,9 +164,9 @@ static int rtk_load_vcontrol(uintptr_t dwc, u8 addr)
 	writel(pvndctl, dwc + USB_OTG_GPVNDCTL);
 	do {
 		/* 1us timeout expected, 1ms for safe */
-		usleep_range(1, 2);
+		udelay(1);
 		if (++count > 1000) {
-			pr_err("[USBPHY] Vcontrol timeout\n");
+			dev_err(p->dev, "Vcontrol timeout\n");
 			return -ETIMEDOUT;
 		}
 
@@ -137,29 +176,27 @@ static int rtk_load_vcontrol(uintptr_t dwc, u8 addr)
 	return 0;
 }
 
-static int rtk_phy_write(struct phy *phy, uintptr_t dwc, u8 addr, u8 val)
+static int rtk_phy_write(struct phy *p, uintptr_t dwc, u8 addr, u8 val)
 {
 	u32 tmp;
 	int ret = 0;
-	struct rtk_usbphy *usbphyc = dev_get_priv(phy->dev);
-	fdt_addr_t addon_base = usbphyc->addon_base;
+	struct rtk_usb_phy_t *uphy = dev_get_priv(p->dev);
+	fdt_addr_t addon_base = uphy->addon_base;
 
 	tmp = readl(addon_base + USB_OTG_ADDON_REG_VND_STS_OUT);
 	tmp &= (~PHY_DATA_MASK);
 	tmp |= val;
 	writel(tmp, addon_base + USB_OTG_ADDON_REG_VND_STS_OUT);
 
-	//low addr
-	ret = rtk_load_vcontrol(dwc, PHY_LOW_ADDR(addr));
+	ret = rtk_load_vcontrol(p, dwc, PHY_LOW_ADDR(addr));
 	if (ret == 0) {
-		//high addr
-		ret = rtk_load_vcontrol(dwc, PHY_HIGH_ADDR(addr));
+		ret = rtk_load_vcontrol(p, dwc, PHY_HIGH_ADDR(addr));
 	}
 
 	return ret;
 }
 
-static int rtk_phy_read(struct phy *phy, uintptr_t dwc, u8 addr, u8 *val)
+static int rtk_phy_read(struct phy *p, uintptr_t dwc, u8 addr, u8 *val)
 {
 	u32 pvndctl;
 	int ret = 0;
@@ -170,11 +207,9 @@ static int rtk_phy_read(struct phy *phy, uintptr_t dwc, u8 addr, u8 *val)
 		addr_read = addr;
 	}
 
-	//low addr
-	ret = rtk_load_vcontrol(dwc, PHY_LOW_ADDR(addr_read));
+	ret = rtk_load_vcontrol(p, dwc, PHY_LOW_ADDR(addr_read));
 	if (ret == 0) {
-		//high addr
-		ret = rtk_load_vcontrol(dwc, PHY_HIGH_ADDR(addr_read));
+		ret = rtk_load_vcontrol(p, dwc, PHY_HIGH_ADDR(addr_read));
 		if (ret == 0) {
 			pvndctl = readl(dwc + USB_OTG_GPVNDCTL);
 			*val = (pvndctl & USB_OTG_GPVNDCTL_REGDATA_Msk) >> USB_OTG_GPVNDCTL_REGDATA_Pos;
@@ -184,19 +219,19 @@ static int rtk_phy_read(struct phy *phy, uintptr_t dwc, u8 addr, u8 *val)
 	return ret;
 }
 
-static int rtk_phy_page_set(struct phy *phy, uintptr_t dwc, u8 page)
+static int rtk_phy_page_set(struct phy *p, uintptr_t dwc, u8 page)
 {
 	int ret;
 	u8 reg;
 
-	ret = rtk_phy_read(phy, dwc, USB_OTG_PHY_REG_F4, &reg);
+	ret = rtk_phy_read(p, dwc, USB_OTG_PHY_REG_F4, &reg);
 	if (ret != 0) {
 		return ret;
 	}
 
 	reg &= (~USB_OTG_PHY_REG_F4_BIT_PAGE_SEL_MASK);
 	reg |= (page << USB_OTG_PHY_REG_F4_BIT_PAGE_SEL_POS) & USB_OTG_PHY_REG_F4_BIT_PAGE_SEL_MASK;
-	ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_F4, reg);
+	ret = rtk_phy_write(p, dwc, USB_OTG_PHY_REG_F4, reg);
 
 	return ret;
 }
@@ -207,241 +242,55 @@ static int rtk_phy_page_set(struct phy *phy, uintptr_t dwc, u8 page)
   * @param  None
   * @retval HAL status
   */
-int rtk_phy_calibrate(struct phy *phy, uintptr_t dwc)
+int rtk_phy_calibrate(struct phy *p, uintptr_t dwc)
 {
-	int ret = 0;
+	u8 ret = 0;
+	struct rtk_usb_phy_cal_data_t *data;
+	u8 old_page = 0xFF;
 
-	if (phy == NULL) {
+	if (p == NULL) {
 		return -1;
 	}
 
 	/* 3ms + 2.5us from DD, 3ms already delayed after soft disconnect */
-	usleep_range(3, 4);
+	udelay(3);
 
-	if (rtk_misc_get_rl_version() == RTK_CUT_VERSION_A) {
-		/* Switch to page 1 */
-		ret = rtk_phy_page_set(phy, dwc, USB_OTG_PHY_REG_F4_BIT_PAGE1);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to select page 1: %d\n", ret);
-			return ret;
-		}
-
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_E5, 0x0A);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P1_E5: %d\n", ret);
-			return ret;
-		}
-
-		/* Switch to page 0 */
-		ret = rtk_phy_page_set(phy, dwc, USB_OTG_PHY_REG_F4_BIT_PAGE0);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to select page 0: %d\n", ret);
-			return ret;
-		}
-
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_E1, 0x19);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P0_E1: %d\n", ret);
-			return ret;
-		}
-
-		/* Switch to page 1 */
-		ret = rtk_phy_page_set(phy, dwc, USB_OTG_PHY_REG_F4_BIT_PAGE1);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to select page 1: %d\n", ret);
-			return ret;
-		}
-
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_E6, 0xD8);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P1_E6: %d\n", ret);
-			return ret;
-		}
-
-		/* Switch to page 0 */
-		ret = rtk_phy_page_set(phy, dwc, USB_OTG_PHY_REG_F4_BIT_PAGE0);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to select page 0: %d\n", ret);
-			return ret;
-		}
-
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_E0, 0x9D);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P0_E0: %d\n", ret);
-			return ret;
-		}
-
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_E2, 0xDB);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P0_E2: %d\n", ret);
-			return ret;
-		}
-
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_E4, 0x6D);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P0_E4: %d\n", ret);
-			return ret;
-		}
-
-		/* Switch to page 2 */
-		ret = rtk_phy_page_set(phy, dwc, USB_OTG_PHY_REG_F4_BIT_PAGE2);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to select page 2: %d\n", ret);
-			return ret;
-		}
-
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_E7, 0x62);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P2_E7: %d\n", ret);
-			return ret;
-		}
-
-		/* Switch to page 1 */
-		ret = rtk_phy_page_set(phy, dwc, USB_OTG_PHY_REG_F4_BIT_PAGE1);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to select page 1: %d\n", ret);
-			return ret;
-		}
-
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_E0, 0x04);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P1_E0: %d\n", ret);
-			return ret;
-		}
-
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_E0, 0x00);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P1_E0: %d\n", ret);
-			return ret;
-		}
-
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_E0, 0x04);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P1_E0: %d\n", ret);
-			return ret;
-		}
+	if (rtk_misc_get_rl_version() != RTK_CUT_VERSION_A) {
+		data = (struct rtk_usb_phy_cal_data_t *)rtk_usb_cut_b_cal_data;
 	} else {
-		/* Switch to page 1 */
-		ret = rtk_phy_page_set(phy, dwc, USB_OTG_PHY_REG_F4_BIT_PAGE1);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to select page 1: %d\n", ret);
-			return ret;
-		}
+		data = (struct rtk_usb_phy_cal_data_t *)rtk_usb_cut_a_cal_data;
+	}
 
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_E5, 0x0A);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P1_E5: %d\n", ret);
-			return ret;
+	while (data->page != 0xFF) {
+		if (data->page != old_page) {
+			ret = rtk_phy_page_set(p, dwc, data->page);
+			if (ret != 0) {
+				dev_err(p->dev, "Fail to switch to page %d: %d\n", data->page, ret);
+				break;
+			}
+			old_page = data->page;
 		}
-
-		/* Switch to page 0 */
-		ret = rtk_phy_page_set(phy, dwc, USB_OTG_PHY_REG_F4_BIT_PAGE0);
+		ret = rtk_phy_write(p, dwc, data->addr, data->val);
 		if (ret != 0) {
-			pr_err("[USBPHY] Fail to select page 0: %d\n", ret);
-			return ret;
+			dev_err(p->dev, "Fail to write page %d register 0x%02X: %d\n", data->page, data->addr, ret);
+			break;
 		}
-
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_E1, 0x19);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P0_E1: %d\n", ret);
-			return ret;
-		}
-
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_F7, 0x3A);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P0_F7: %d\n", ret);
-			return ret;
-		}
-
-		/* Switch to page 1 */
-		ret = rtk_phy_page_set(phy, dwc, USB_OTG_PHY_REG_F4_BIT_PAGE1);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to select page 1: %d\n", ret);
-			return ret;
-		}
-
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_E6, 0xD8);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P1_E6: %d\n", ret);
-			return ret;
-		}
-
-		/* Switch to page 0 */
-		ret = rtk_phy_page_set(phy, dwc, USB_OTG_PHY_REG_F4_BIT_PAGE0);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to select page 0: %d\n", ret);
-			return ret;
-		}
-
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_E0, 0x9D);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P0_E0: %d\n", ret);
-			return ret;
-		}
-
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_E2, 0xDB);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P0_E2: %d\n", ret);
-			return ret;
-		}
-
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_E4, 0x86);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P0_E4: %d\n", ret);
-			return ret;
-		}
-
-		/* Switch to page 2 */
-		ret = rtk_phy_page_set(phy, dwc, USB_OTG_PHY_REG_F4_BIT_PAGE2);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to select page 2: %d\n", ret);
-			return ret;
-		}
-
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_E7, 0x62);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P2_E7: %d\n", ret);
-			return ret;
-		}
-
-		/* Switch to page 1 */
-		ret = rtk_phy_page_set(phy, dwc, USB_OTG_PHY_REG_F4_BIT_PAGE1);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to select page 1: %d\n", ret);
-			return ret;
-		}
-
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_E0, 0x04);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P1_E0: %d\n", ret);
-			return ret;
-		}
-
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_E0, 0x00);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P1_E0: %d\n", ret);
-			return ret;
-		}
-
-		ret = rtk_phy_write(phy, dwc, USB_OTG_PHY_REG_E0, 0x04);
-		if (ret != 0) {
-			pr_err("[USBPHY] Fail to write USB_OTG_PHY_REG_P1_E0: %d\n", ret);
-			return ret;
-		}
+		data++;
 	}
 
 	return ret;
 }
+
 EXPORT_SYMBOL_GPL(rtk_phy_calibrate);
 
-static int rtk_usbphy_phy_init(struct phy *phy)
+static int rtk_usbphy_phy_init(struct phy *p)
 {
 	u32 reg;
 	u32 count = 0;
-	struct rtk_usbphy *usbphyc = dev_get_priv(phy->dev);
-	fdt_addr_t addon_base = usbphyc->addon_base;
-	fdt_addr_t hp_base = usbphyc->hp_base;
-	fdt_addr_t clk_base = usbphyc->clk_base;
+	struct rtk_usb_phy_t *uphy = dev_get_priv(p->dev);
+	fdt_addr_t addon_base = uphy->addon_base;
+	fdt_addr_t hp_base = uphy->hp_base;
+	fdt_addr_t clk_base = uphy->clk_base;
 
 	reg = readl(clk_base + REG_LSYS_AIP_CTRL1);
 	reg |= (LSYS_BIT_BG_PWR | LSYS_BIT_BG_ON_USB2);
@@ -467,19 +316,19 @@ static int rtk_usbphy_phy_init(struct phy *phy)
 	reg = readl(hp_base + REG_HSYS_USB_CTRL);
 	reg |= (HSYS_BIT_PWC_UALV_EN | HSYS_BIT_PWC_UAHV_EN);
 	writel(reg, hp_base + REG_HSYS_USB_CTRL);
-	usleep_range(2, 3);
+	udelay(2);
 
 	/* USB PWC_UABG_EN */
 	reg = readl(hp_base + REG_HSYS_USB_CTRL);
 	reg |= HSYS_BIT_PWC_UABG_EN;
 	writel(reg, hp_base + REG_HSYS_USB_CTRL);
-	usleep_range(10, 15);
+	udelay(10);
 
 	/* USB ISO_USBD_EN = 0 => disable isolation output signal from PD_USBD*/
 	reg = readl(hp_base + REG_HSYS_USB_CTRL);
 	reg &= ~HSYS_BIT_ISO_USBA_EN;
 	writel(reg, hp_base + REG_HSYS_USB_CTRL);
-	usleep_range(10, 15);
+	udelay(10);
 
 	/* USBPHY_EN = 1 */
 	reg = readl(addon_base + USB_OTG_ADDON_REG_CTRL);
@@ -487,14 +336,14 @@ static int rtk_usbphy_phy_init(struct phy *phy)
 	reg |= (0x3U << USB_OTG_ADDON_REG_CTRL_BIT_HS_IP_GAP_OPT_POS); // Inter-packet gap 343ns, spec 399ns
 	reg |= (USB_OTG_ADDON_REG_CTRL_BIT_USB_DPHY_FEN | USB_OTG_ADDON_REG_CTRL_BIT_USB_APHY_EN | USB_OTG_ADDON_REG_CTRL_BIT_LS_HST_UTMI_EN);
 	writel(reg, addon_base + USB_OTG_ADDON_REG_CTRL);
-	usleep_range(34, 40);
+	udelay(34);
 
 	/* Wait UPLL_CKRDY */
 	do {
 		/* 1ms timeout expected, 10ms for safe */
-		usleep_range(10, 15);
+		udelay(10);
 		if (++count > 1000U) {
-			pr_err("[USBPHY] USB PHY init timeout\n");
+			dev_err(p->dev, "USB PHY init timeout\n");
 			return -ETIMEDOUT;
 		}
 	} while (!(readl(addon_base + USB_OTG_ADDON_REG_CTRL) & USB_OTG_ADDON_REG_CTRL_BIT_UPLL_CKRDY));
@@ -507,13 +356,13 @@ static int rtk_usbphy_phy_init(struct phy *phy)
 	return 0;
 }
 
-static int rtk_usbphy_phy_exit(struct phy *phy)
+static int rtk_usbphy_phy_exit(struct phy *p)
 {
 	u32 reg = 0;
-	struct rtk_usbphy *usbphyc = dev_get_priv(phy->dev);
-	fdt_addr_t addon_base = usbphyc->addon_base;
-	fdt_addr_t clk_base = usbphyc->clk_base;
-	fdt_addr_t hp_base = usbphyc->hp_base;
+	struct rtk_usb_phy_t *uphy = dev_get_priv(p->dev);
+	fdt_addr_t addon_base = uphy->addon_base;
+	fdt_addr_t clk_base = uphy->clk_base;
+	fdt_addr_t hp_base = uphy->hp_base;
 
 	/* USBOTG_EN = 0 => disable USBOTG */
 	reg = readl(addon_base + USB_OTG_ADDON_REG_CTRL);
@@ -559,34 +408,33 @@ static int rtk_usbphy_phy_exit(struct phy *phy)
 	return 0;
 }
 
-static int rtk_usbphy_of_xlate(struct phy *phy,
-				  struct ofnode_phandle_args *args)
+static int rtk_usbphy_of_xlate(struct phy *p, struct ofnode_phandle_args *args)
 {
 	return 0;
 }
 
-static int rtk_usbphy_phy_power_on(struct phy *phy)
+static int rtk_usbphy_phy_power_on(struct phy *p)
 {
 	return 0;
 }
-static int rtk_usbphy_phy_power_off(struct phy *phy)
+static int rtk_usbphy_phy_power_off(struct phy *p)
 {
 	return 0;
 }
 
 static int rtk_usbphy_probe(struct udevice *dev)
 {
-	struct rtk_usbphy *usbphyc = dev_get_priv(dev);
+	struct rtk_usb_phy_t *uphy = dev_get_priv(dev);
 	int ret = 0;
 
-	usbphyc->addon_base = devfdt_get_addr_index(dev, 0);
-	usbphyc->hp_base = devfdt_get_addr_index(dev, 1);
-	usbphyc->clk_base = devfdt_get_addr_index(dev, 2);
+	uphy->addon_base = devfdt_get_addr_index(dev, 0);
+	uphy->hp_base = devfdt_get_addr_index(dev, 1);
+	uphy->clk_base = devfdt_get_addr_index(dev, 2);
 
 	return ret;
 }
 
-static const struct phy_ops rtk_usbphy_phy_ops = {
+static const struct phy_ops rtk_usbphy_ops = {
 	.init = rtk_usbphy_phy_init,
 	.exit = rtk_usbphy_phy_exit,
 	.power_on = rtk_usbphy_phy_power_on,
@@ -595,16 +443,16 @@ static const struct phy_ops rtk_usbphy_phy_ops = {
 };
 
 static const struct udevice_id rtk_usbphy_of_match[] = {
-	{ .compatible = "realtek,otg-phy", },
+	{ .compatible = "realtek,amebad2-otg-phy", },
 	{ },
 };
 
-U_BOOT_DRIVER(rtk_usb_phyc) = {
-	.name = "rtk-usbphy",
+U_BOOT_DRIVER(rtk_usb_phy_driver) = {
+	.name = "realtek-amebad2-otg-phy",
 	.id = UCLASS_PHY,
 	.of_match = rtk_usbphy_of_match,
-	.ops = &rtk_usbphy_phy_ops,
+	.ops = &rtk_usbphy_ops,
 	.probe = rtk_usbphy_probe,
-	.priv_auto_alloc_size = sizeof(struct rtk_usbphy),
+	.priv_auto_alloc_size = sizeof(struct rtk_usb_phy_t),
 };
 

@@ -650,11 +650,11 @@ static int do_mtd_io_option(
 		argv_read[3] = "r-vbmeta";
 		argv_read[4] = "-";
 		if (syscfg_get_secure_enable() && do_mtd_verified_boot(5, argv_read) != CMD_RET_SUCCESS){
-			printf("linux verified boot: fail!\n");
-			printf("boot will be rejected!\n");
+			printf("Linux verified boot: fail\n");
+			printf("Boot will be rejected\n");
 			mtd_avb_reject_booting(5, argv_read);
 		} else {
-			printf("linux verified boot: success!\n");
+			printf("Linux verified boot: success\n");
 		}
 #endif // IS_ENABLED(CONFIG_VERIFIED_BOOT)
 	} else {
@@ -676,11 +676,11 @@ static int do_mtd_io_option(
 		argv_read[3] = "vbmeta";
 		argv_read[4] = "-";
 		if (syscfg_get_secure_enable() && do_mtd_verified_boot(5, argv_read) != CMD_RET_SUCCESS){
-			printf("linux verified boot: fail!\n");
-			printf("boot will be rejected!\n");
+			printf("Linux verified boot: fail\n");
+			printf("Boot will be rejected\n");
 			mtd_avb_reject_booting(5, argv_read);
 		} else {
-			printf("linux verified boot: success!\n");
+			printf("Linux verified boot: success\n");
 		}
 #endif // IS_ENABLED(CONFIG_VERIFIED_BOOT)
 	}

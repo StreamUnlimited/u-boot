@@ -1,7 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
- * Ameba loguart support
- * modified to use CONFIG_SYS_ISA_MEM and new defines
- */
+* Realtek LOGUART support
+*
+* Copyright (C) 2023, Realtek Corporation. All rights reserved.
+*/
 
 #include <clock_legacy.h>
 #include <common.h>
@@ -29,10 +31,11 @@ static int ameba_serial_getc(struct udevice *dev)
 	struct ameba_regs *regs = priv->regs;
 	u32 data;
 
-	if (!(readl(&regs->LSR) & LOGUART_LINE_STATUS_REG_DR))
+	if (!(readl(&regs->LSR) & LOGUART_LINE_STATUS_REG_DR)) {
 		return -EAGAIN;
+	}
 
-	/*only 8 bit used*/
+	/* Only 8 bit used */
 	data = readl(&regs->RBR);
 
 	return (int)data;
@@ -43,8 +46,9 @@ static int ameba_serial_putc(struct udevice *dev, const char data)
 	struct ameba_priv *priv = dev_get_priv(dev);
 	struct ameba_regs *regs = priv->regs;
 
-	if (!(readl(&regs->LSR) & LOGUART_LINE_STATUS_REG_P4_FIFONF))
+	if (!(readl(&regs->LSR) & LOGUART_LINE_STATUS_REG_P4_FIFONF)) {
 		return -EAGAIN;
+	}
 
 	/* Send the character */
 	writel(data, &regs->THR4);
@@ -72,36 +76,36 @@ static int ameba_serial_pending(struct udevice *dev, bool input)
 }
 
 /**
-  * @brief    get ovsr & ovsr_adj parameters according to the given baudrate and UART IP clock.
+  * @brief  Get ovsr & ovsr_adj parameters according to the given baudrate and UART IP clock.
   * @param  UARTx: where x can be 0/1/3.
-  * @param  IPclk: the given UART IP clock, Unit: [ Hz ]
+  * @param  ip_clk: the given UART IP clock, Unit: [ Hz ]
   * @param  baudrate: the desired baudrate, Unit: bps[ bit per second ]
   * @param  ovsr: parameter related to the desired baud rate( corresponding to STSR[23:4] )
   * @param  ovsr_adj: parameter related to the desired baud rate( corresponding to SCR[26:16] )
-  * @retval  None
+  * @retval None
   */
-void uart_baud_para_get(u32 IPclk, u32 baudrate, u32 *ovsr, u32 *ovsr_adj)
+static void ameba_serial_get_baud_param(u32 ip_clk, u32 baudrate, u32 *ovsr, u32 *ovsr_adj)
 {
 	u32 i;
-	u32 Remainder;
-	u32 TempAdj = 0;
-	u32 TempMultly;
+	u32 remain;
+	u32 mult;
+	u32 adj = 0;
 
-	/*obtain the ovsr parameter*/
-	*ovsr = IPclk / baudrate;
+	/* Obtain the ovsr parameter*/
+	*ovsr = ip_clk / baudrate;
 
-	/*get the remainder related to the ovsr_adj parameter*/
-	Remainder = IPclk % baudrate;
+	/* Get the remainder related to the ovsr_adj parameter*/
+	remain = ip_clk % baudrate;
 
-	/*calculate the ovsr_adj parameter*/
-	for(i = 0; i < 11; i++){
-		TempAdj = TempAdj << 1;
-		TempMultly = (Remainder * (12-i));
-		TempAdj |= ((TempMultly / baudrate - (TempMultly - Remainder) / baudrate) ? 1 : 0);
+	/* Calculate the ovsr_adj parameter*/
+	for (i = 0; i < 11; i++) {
+		adj = adj << 1;
+		mult = (remain * (12 - i));
+		adj |= ((mult / baudrate - (mult - remain) / baudrate) ? 1 : 0);
 	}
 
-	/*obtain the ovsr_adj parameter*/
-	*ovsr_adj = TempAdj;
+	/* Obtain the ovsr_adj parameter*/
+	*ovsr_adj = adj;
 }
 
 static int ameba_serial_setbrg(struct udevice *dev, int baudrate)
@@ -113,18 +117,19 @@ static int ameba_serial_setbrg(struct udevice *dev, int baudrate)
 	u32 ovsr;
 	u32 ovsr_adj;
 
-	if (plat->skip_init)
-		goto out;
+	if (plat->skip_init) {
+		goto exit;
+	}
 
-	/* get baud rate parameter based on baudrate */
-	uart_baud_para_get(plat->clock, baudrate, &ovsr, &ovsr_adj);
+	/* Get baud rate parameter based on baudrate */
+	ameba_serial_get_baud_param(plat->clock, baudrate, &ovsr, &ovsr_adj);
 
 	/* Set DLAB bit to 1 to access DLL/DLM */
 	reg_value = readl(&regs->LCR);
 	reg_value |= RUART_LINE_CTL_REG_DLAB_ENABLE;
 	writel(reg_value, &regs->LCR);
 
-	/*Clean Rx break signal interrupt status at initial stage*/
+	/* Clean Rx break signal interrupt status at initial stage*/
 	reg_value = readl(&regs->SPR);
 	reg_value |= RUART_SP_REG_RXBREAK_INT_STATUS;
 
@@ -140,12 +145,12 @@ static int ameba_serial_setbrg(struct udevice *dev, int baudrate)
 	reg_value |= ((ovsr_adj << 16) & RUART_SP_REG_XFACTOR_ADJ);
 	writel(reg_value, &regs->SPR);
 
-	/* clear DLAB bit */
+	/* Clear DLAB bit */
 	reg_value = readl(&regs->LCR);
 	reg_value &= ~(RUART_LINE_CTL_REG_DLAB_ENABLE);
 	writel(reg_value, &regs->LCR);
-	
-	/*rx baud rate configureation*/
+
+	/* RX baud rate configureation*/
 	reg_value = readl(&regs->MON_BAUD_STS);
 	reg_value &= (~RUART_LP_RX_XTAL_CYCNUM_PERBIT);
 	reg_value |= ovsr;
@@ -153,15 +158,15 @@ static int ameba_serial_setbrg(struct udevice *dev, int baudrate)
 
 	reg_value = readl(&regs->MON_BAUD_CTRL);
 	reg_value &= (~RUART_LP_RX_OSC_CYCNUM_PERBIT);
-	reg_value |= (ovsr<<9);
+	reg_value |= (ovsr << 9);
 	writel(reg_value, &regs->MON_BAUD_CTRL);
 
 	reg_value = readl(&regs->RX_PATH);
 	reg_value &= (~RUART_REG_RX_XFACTOR_ADJ);
-	reg_value |= (ovsr_adj<<3);
+	reg_value |= (ovsr_adj << 3);
 	writel(reg_value, &regs->RX_PATH);
 
-out:
+exit:
 	/* Flush the RX queue - all data in there is bogus */
 	while (ameba_serial_getc(dev) != -EAGAIN) ;
 
@@ -183,8 +188,9 @@ static int ameba_serial_probe(struct udevice *dev)
 	fdt_addr_t addr;
 
 	addr = devfdt_get_addr(dev);
-	if (addr == FDT_ADDR_T_NONE)
+	if (addr == FDT_ADDR_T_NONE) {
 		return -EINVAL;
+	}
 
 	plat->base = addr;
 	plat->clock = dev_read_u32_default(dev, "clock", 1);
@@ -201,13 +207,13 @@ static int ameba_serial_probe(struct udevice *dev)
 }
 
 static const struct udevice_id ameba_serial_id[] = {
-	{.compatible = "realtek,ameba_serial"},
+	{.compatible = "realtek,amebad2-loguart"},
 	{}
 };
 #endif
 
 U_BOOT_DRIVER(serial_ameba) = {
-	.name = "serial_ameba",
+	.name = "realtek-amebad2-loguart",
 	.id = UCLASS_SERIAL,
 	.of_match = of_match_ptr(ameba_serial_id),
 	.platdata_auto_alloc_size = sizeof(struct ameba_serial_platdata),
@@ -218,5 +224,4 @@ U_BOOT_DRIVER(serial_ameba) = {
 #endif
 	.priv_auto_alloc_size = sizeof(struct ameba_priv),
 };
-
 

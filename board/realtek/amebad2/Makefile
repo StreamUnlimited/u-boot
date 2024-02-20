@@ -21,9 +21,4 @@
 #
 
 obj-y	+= lowlevel-init.o ameba.o
-ifneq ($(CONFIG_SYS_NO_FLASH),y)
-obj-y	+= flash.o
-endif
-ifneq ($(CONFIG_DM_SERIAL),y)
-obj-y	+= serial.o
-endif
+
