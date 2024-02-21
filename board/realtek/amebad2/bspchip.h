@@ -52,15 +52,10 @@
 #define LSYS_CHIP_INFO_EN(x)			((u32)((x) & 0x0000000F) << 28)
 #define LSYS_GET_RL_VER(x)			((u32)(((x >> 16) & 0x0000000F)))
 
+#define SEC_BIT_LOW_BAUD_LOG_EN			((u32)0x00000001 << 25)          /*!<R/W 0  Loguart Baudrate selection 1: 115200bps 0: 1.5Mbps */
 #define SEC_BIT_LOGIC_SECURE_BOOT_EN		((u32)0x00000001 << 26)
 #define SEC_BIT_SECURE_BOOT_EN			((u32)0x00000001 << 3)
 
-
-#define SEC_BIT_LOW_BAUD_LOG_EN			((u32)0x00000001 << 25)          /*!<R/W 0  Loguart Baudrate selection 1: 115200bps 0: 1.5Mbps */
-#define SEC_BIT_LOGIC_SECURE_BOOT_EN		((u32)0x00000001 << 26)          /*!<R/W 0  Secure boot enable */
-
-#define SEC_CFG2				0x0368
-#define SEC_BIT_SECURE_BOOT_EN			((u32)0x00000001 << 3)          /*!<PROT/R 1'b1   */
 
 /*
  *****************************************************************************************

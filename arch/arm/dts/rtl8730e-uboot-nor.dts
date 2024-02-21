@@ -44,12 +44,8 @@
 
 		otp: otp@0 {
 			compatible = "realtek,amebad2-otp";
-			reg = <AIPC_SHARED_MEM_ADDR AIPC_SHARED_MEM_SIZE>, // res 0
-				<AIPC_REG_TX_DATA AIPC_REG_SIZE>, // res 1
-				<AIPC_REG_RX_DATA AIPC_REG_SIZE>, // res 2
-				<AIPC_REG_ISR AIPC_REG_SIZE>, // res 3
-				<AIPC_REG_IMR AIPC_REG_SIZE>, // res 4
-				<AIPC_REG_ICR AIPC_REG_SIZE>; // res 5
+			reg = <0x42000000 0x800>,
+				<0x42008000 0x1000>;
 		};
 
 		spic: spi@44000000 {

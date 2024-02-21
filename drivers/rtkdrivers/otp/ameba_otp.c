@@ -4,177 +4,293 @@
 *
 * Copyright (C) 2023, Realtek Corporation. All rights reserved.
 */
-
+#include <asm/io.h>
 #include <common.h>
-#include <cpu_func.h>
 #include <dm/device.h>
-#include <dm/read.h>
 #include <dm/device_compat.h>
-#include <linux/bitops.h>
-#include <linux/delay.h>
-#include <linux/io.h>
+#include <dm/read.h>
 #include <misc.h>
+
 #include <linux/delay.h>
+#include <linux/bitops.h>
 
-#include "ameba_ipc.h"
+#define RETRY_COUNT					3
+#define RTK_OTP_ACCESS_PWD			0x69
+#define RTK_OTP_POLL_TIMES			20000
 
-#define LINUX_IPC_OTP_PHY_READ8		    0U
-#define LINUX_IPC_OTP_PHY_WRITE8		1U
-#define LINUX_IPC_OTP_LOGI_READ_MAP		2U
-#define LINUX_IPC_OTP_LOGI_WRITE_MAP	3U
-#define LINUX_IPC_EFUSE_REMAIN_LEN		4U
+#define RTK_OTPC_BIT_BUSY			BIT(8)
+#define RTK_OTPC_OTP_AS				0x0008
+#define RTK_OTPC_OTP_CTRL			0x0014
+#define RTK_OTPC_OTP_PARAM			0x0040
+#define RTK_REG_AON_PWC				0x0000
 
-#define OPT_REQ_MSG_PARAM_NUM			1024
-#define OTP_IPC_RET_LEN					2
+/*!<R/WPD/ET 0  Write this bit will trig an indirect read or write. Write 1: trigger write write 0: trigger read After this operation done, this bit will toggle. */
+#define RTK_OTPC_BIT_EF_RD_WR_NS	((u32)0x00000001 << 31)
+#define RTK_OTPC_MASK_EF_PG_PWD		((u32)0x000000FF << 24)
+#define RTK_OTPC_MASK_EF_DATA_NS	((u32)0x000000FF << 0)
+#define RTK_AON_BIT_PWC_AON_OTP		((u32)0x00000001 << 0)
+#define RTK_OTPC_EF_PG_PWD(x)		((u32)(((x) & 0x000000FF) << 24))
+#define RTK_OTPC_EF_ADDR_NS(x)		((u32)(((x) & 0x000007FF) << 8))
+#define RTK_OTPC_EF_MODE_SEL_NS(x)	((u32)(((x) & 0x00000007) << 19))
 
-enum {
-	IPC_USER_POINT = 0,
-	IPC_USER_DATA = 1
-};
-
-struct otp_ipc_host_req_msg {
-	u32 otp_id;
-	u32 addr;
-	u32 len;
-	u32 write_lock;
-	u8 param_buf[OPT_REQ_MSG_PARAM_NUM];
-};
-
-struct rtk_otp {
-	struct udevice *dev;
-	struct aipc_ch *potp_ipc_ch;
-	struct otp_ipc_host_req_msg phy_msg;	/* host api message to send to device */
-	struct ipc_msg_struct otp_ipc_msg;		/* to store ipc msg for api */
-	struct completion otp_complete;			/* only one otp process can send ipc instruction */
-	struct rtk_otp_platdata *ameba_otp;
+enum rtk_otp_opmode {
+	RTK_OTP_USER_MODE = 0,
+	RTK_OTP_PGR_MODE = 2,
 };
 
 struct rtk_otp_platdata {
-	struct aipc_device	pipc_dev;
-	struct rtk_otp		otp;
-	int			otp_done;
+	fdt_size_t mem_len;
+	void __iomem * mem_base;
+	void __iomem * sys_base;
 };
 
-static int otp_ipc_host_otp_send_msg(struct udevice *dev, struct rtk_otp *otp)
+static void rtk_otp_wait_for_busy(struct rtk_otp_platdata *rtk_otp, u32 flags)
 {
-	if (!otp) {
-		dev_err(dev, "OTP is NULL\n");
-		return -1;
-	}
+	u32 val = 0;
 
-	memset((u8 *)&(otp->otp_ipc_msg), 0, sizeof(struct ipc_msg_struct));
-	otp->otp_ipc_msg.msg = (u32)&otp->phy_msg;
-	otp->otp_ipc_msg.msg_type = IPC_USER_POINT;
-	otp->otp_ipc_msg.msg_len = sizeof(struct otp_ipc_host_req_msg);
-	flush_dcache_all();
+	if (!rtk_otp) return;
 
-	ameba_ipc_channel_send(dev, otp->potp_ipc_ch, &(otp->otp_ipc_msg), &otp->ameba_otp->pipc_dev);
+	val = readl(rtk_otp->mem_base + RTK_OTPC_OTP_PARAM);
 
-	return 0;
+	if (flags) {
+		while (val & RTK_OTPC_BIT_BUSY) {
+			udelay(100);
+		}
+
+		val |= RTK_OTPC_BIT_BUSY;
+	} else
+		val &= ~RTK_OTPC_BIT_BUSY;
+
+	writel(val, rtk_otp->mem_base + RTK_OTPC_OTP_PARAM);
 }
 
-static void otp_ipc_host_otp_task(struct udevice *dev, struct rtk_otp *otp)
+static bool rtk_otp_get_power_state(struct rtk_otp_platdata *rtk_otp)
 {
-	struct udevice *pdev = NULL;
-	int msg_len = 0;
+	u32 state = 0;
 
-	if (!otp || !otp->potp_ipc_ch) {
-		dev_err(dev, "IPC channel is NULL\n");
-		goto func_exit;
-	}
+	state = readl((volatile void __iomem *)(rtk_otp->sys_base + RTK_REG_AON_PWC));
+	if (state & RTK_AON_BIT_PWC_AON_OTP)
+		return true;
 
-	pdev = otp->potp_ipc_ch->pdev;
-	if (!pdev) {
-		dev_err(dev, "Device is NULL\n");
-		goto func_exit;
-	}
-
-	if (!otp->otp_ipc_msg.msg || !otp->otp_ipc_msg.msg_len) {
-		dev_err(dev, "Invalid device message\n");
-		goto func_exit;
-	}
-
-	msg_len = otp->otp_ipc_msg.msg_len;
-
-	otp->ameba_otp->otp_done = 1;
-
-func_exit:
-	return;
+	return false;
 }
 
-/* input: */
-/* data: in type of struct otp_ipc_host_req_msg. */
-/* struct otp_ipc_host_req_msg: otp_id is LINUX_IPC_OTP_PHY_READ8/LINUX_IPC_OTP_PHY_WRITE8/LINUX_IPC_OTP_LOGI_READ_MAP/LINUX_IPC_OTP_LOGI_WRITE_MAP/LINUX_IPC_EFUSE_REMAIN_LEN. */
-/* struct otp_ipc_host_req_msg: addr is the address to read/write. */
-/* struct otp_ipc_host_req_msg: len is the len to read/write. */
-/* struct otp_ipc_host_req_msg: write_lock is the lock to write. (if set to 0, the param_buf will be written into Efuse) */
-/* struct otp_ipc_host_req_msg: param_buf is the value to write, or the read value returned. */
-/* output: */
-/* result: for otp read, result shall be a malloc buffer. */
-/*         for otp write, the result can be ignored. */
-/*		   for EFUSE Remain read, result length is 4*(u8), combined as a (u32) remain value. result[0] is the largest edian. */
-static int rtk_otp_process(struct udevice *dev, struct rtk_otp_platdata *plat)
+static void rtk_otp_set_power_cmd(struct rtk_otp_platdata *rtk_otp, bool enable)
 {
-	struct otp_ipc_host_req_msg *preq_msg = &plat->otp.phy_msg;
+	u32 state = readl((volatile void __iomem *)(rtk_otp->sys_base + RTK_REG_AON_PWC));
+
+	if (enable)
+		state |= RTK_AON_BIT_PWC_AON_OTP;
+	else
+		state &= ~RTK_AON_BIT_PWC_AON_OTP;
+
+	writel(state, (volatile void __iomem *)(rtk_otp->sys_base + RTK_REG_AON_PWC));
+}
+
+static void rtk_otp_access_cmd(struct rtk_otp_platdata *rtk_otp, bool enable)
+{
+	u32 val = 0;
+
+	val = readl(rtk_otp->mem_base + RTK_OTPC_OTP_CTRL);
+	if (enable) {
+		val |= RTK_OTPC_EF_PG_PWD(RTK_OTP_ACCESS_PWD);
+	} else
+		val &= ~RTK_OTPC_MASK_EF_PG_PWD;
+
+	writel(val, rtk_otp->mem_base + RTK_OTPC_OTP_CTRL);
+}
+
+static void rtk_otp_power_switch(struct rtk_otp_platdata *rtk_otp, bool bwrite, bool pstate)
+{
+	if (pstate == true) {
+		if (rtk_otp_get_power_state(rtk_otp) == false)
+			rtk_otp_set_power_cmd(rtk_otp, true);
+	}
+
+	rtk_otp_access_cmd(rtk_otp, bwrite);
+}
+
+static int rtk_otp_readb(struct udevice *dev, int addr, u8 *data, int mode)
+{
+	struct rtk_otp_platdata *rtk_otp = dev_get_platdata(dev);
+	volatile void __iomem * otp_as_addr = NULL;
 	int ret = 0;
-	struct rtk_otp *otp = NULL;
+	u32 val = 0;
+	u32 idx = 0;
 
-	otp = &plat->otp;
+	if (!rtk_otp) {
+		*data = 0xff;
+		ret = -1;
+		goto exit;
+	}
 
-	if (otp->ameba_otp->otp_done) {
-		otp->ameba_otp->otp_done = 0;
+	if (addr >= rtk_otp->mem_len) {
+		dev_err(dev, "Read addr: %x, mem_len: %x\n", addr, rtk_otp->mem_len);
+		*data = 0xff;
+		ret = -1;
+		goto exit;
+	}
+
+	otp_as_addr = (volatile void __iomem *)(rtk_otp->mem_base + RTK_OTPC_OTP_AS);
+
+	rtk_otp_wait_for_busy(rtk_otp, 1); //wait and set busy flag
+	rtk_otp_power_switch(rtk_otp, false, true);
+
+	val = RTK_OTPC_EF_ADDR_NS(addr);
+	if (mode == RTK_OTP_PGR_MODE)  // for Program Margin Read
+		val |= RTK_OTPC_EF_MODE_SEL_NS(RTK_OTP_PGR_MODE);
+
+	writel(val, otp_as_addr);
+
+	/* 10~20us is needed */
+	val = readl(otp_as_addr);
+	while (idx < RTK_OTP_POLL_TIMES && (!(val & RTK_OTPC_BIT_EF_RD_WR_NS))) {
+		udelay(5);
+		idx++;
+		val = readl(otp_as_addr);
+	}
+
+	if (idx < RTK_OTP_POLL_TIMES) {
+		*data = (u8)(val & RTK_OTPC_MASK_EF_DATA_NS);
 	} else {
-		return -EBUSY;
+		*data = 0xff;
+		ret = -1;
+		dev_err(dev, "Read addr: %x failed\n", addr);
 	}
 
-	if (preq_msg->len > OPT_REQ_MSG_PARAM_NUM) {
-		dev_err(dev, "Too many OTP parameters, max %d bytes\n", OPT_REQ_MSG_PARAM_NUM);
-		return -EINVAL;
+	rtk_otp_power_switch(rtk_otp, false, false);
+	rtk_otp_wait_for_busy(rtk_otp, 0); //reset busy flag
+
+exit:
+	return ret;
+}
+
+static int rtk_otp_program(struct udevice *dev, int addr, u8 data)
+{
+	struct rtk_otp_platdata *rtk_otp = dev_get_platdata(dev);
+	volatile void __iomem * otp_as_addr = NULL;
+	int ret = 0;
+	u32 idx = 0;
+	u32 val = 0;
+
+	if (data == 0xff) return 0;
+
+	if (!rtk_otp) {
+		ret = -1;
+		goto exit;
 	}
 
-	ret = otp_ipc_host_otp_send_msg(dev, otp);
-
-	ret = ameba_ipc_poll(&otp->ameba_otp->pipc_dev);
-	if (ret) {
-		dev_err(dev, "IPC poll failed\n");
-		return ret;
+	if (addr >= rtk_otp->mem_len) {
+		dev_err(dev, "Write addr: %x, mem_len: %x\n", addr, rtk_otp->mem_len);
+		ret = -1;
+		goto exit;
 	}
-	
-	otp_ipc_host_otp_task(dev, otp);
 
-	return 0;
+	otp_as_addr = (volatile void __iomem *)(rtk_otp->mem_base + RTK_OTPC_OTP_AS);
+
+	rtk_otp_wait_for_busy(rtk_otp, 1); //wait and set busy flag
+	rtk_otp_power_switch(rtk_otp, true, true);
+
+	val = data | RTK_OTPC_EF_ADDR_NS(addr) | RTK_OTPC_BIT_EF_RD_WR_NS;
+
+	writel(val, otp_as_addr);
+
+	/* 10~20us is needed */
+	val = readl(otp_as_addr);
+	while (idx < RTK_OTP_POLL_TIMES && (val & RTK_OTPC_BIT_EF_RD_WR_NS)) {
+		udelay(5);
+		idx++;
+		val = readl(otp_as_addr);
+	}
+
+	if (idx >= RTK_OTP_POLL_TIMES) {
+		ret = -1;
+		dev_err(dev, "Write addr: %x failed\n", addr);
+	}
+
+	rtk_otp_power_switch(rtk_otp, false, false);
+	rtk_otp_wait_for_busy(rtk_otp, 0); //reset busy flag
+
+exit:
+	return ret;
+}
+
+static int rtk_otp_writeb(struct udevice *dev, int addr, u8 data)
+{
+	struct rtk_otp_platdata *rtk_otp = dev_get_platdata(dev);
+	int ret = 0;
+	u8 val = 0;
+	u8 retry = 0;
+	u8 target = data;
+
+	if (rtk_otp_readb(dev, addr, &val, RTK_OTP_PGR_MODE) < 0) {
+		dev_err(dev, "Addr: %x PMR read error\n", addr);
+		ret = -1;
+		goto exit;
+	}
+
+retry:
+	/*do not need program bits include originally do not need program
+	(bits equals 1 in data) and already prgoramed bits(bits euqals 0 in Temp) */
+	data |= ~val;
+
+	/*program*/
+	if (rtk_otp_program(dev, addr, data) < 0) {
+		dev_err(dev, "Addr: %x otp write error\n", addr);
+		ret = -1;
+		goto exit;
+	}
+
+	/*Read after program*/
+	if (rtk_otp_readb(dev, addr, &val, RTK_OTP_PGR_MODE) < 0) {
+		dev_err(dev, "Addr: %x PMR read after program error\n", addr);
+		ret = -1;
+		goto exit;
+	}
+
+	/*program do not get desired value,the OTP can be programmed at most 3 times
+		here only try once.*/
+	if (val != target) {
+		if (retry++ >= RETRY_COUNT) {
+			dev_err(dev, "Addr: %x read check error\n", addr);
+			ret = -1;
+			goto exit;
+		} else
+			goto retry;
+	}
+
+exit:
+	return ret;
 }
 
 static int rtk_otp_read(struct udevice *dev, int offset, void *buf, int size)
 {
-	struct rtk_otp_platdata *plat = dev_get_platdata(dev);
-	struct otp_ipc_host_req_msg *preq_msg = &plat->otp.phy_msg;
+	struct rtk_otp_platdata *rtk_otp = dev_get_platdata(dev);
+	u8 *pbuf = (u8 *)buf;
+	u8 val;
+	int i = 0;
+	for (; i < size; i++) {
+		if (rtk_otp_readb(dev, offset++, &val, RTK_OTP_USER_MODE) < 0) {
+			return -1;
+		}
 
-	plat->otp.phy_msg.otp_id = LINUX_IPC_OTP_PHY_READ8;
-	plat->otp.phy_msg.addr = (u32)offset;
-	plat->otp.phy_msg.len = (u32)size;
-
-	rtk_otp_process(dev, plat);
-
-	flush_dcache_all();
-	if (buf && preq_msg->len) {
-		memcpy(buf, preq_msg->param_buf, preq_msg->len);
+		*pbuf++ = val;
 	}
-
 	return size;
 }
 
 static int rtk_otp_write(struct udevice *dev, int offset, const void *buf, int size)
 {
-	struct rtk_otp_platdata *plat = dev_get_platdata(dev);
+	int i = 0;
+	u8 *data = (u8 *)buf;
 
-	plat->otp.phy_msg.otp_id = LINUX_IPC_OTP_PHY_WRITE8;
-	plat->otp.phy_msg.addr = (u32)offset;
-	plat->otp.phy_msg.len = (u32)size;
-	memcpy(plat->otp.phy_msg.param_buf, buf, size);
-	plat->otp.phy_msg.write_lock = 0;
+	for (; i < size; i++) {
+		if (rtk_otp_writeb(dev, offset++, *data++) < 0) {
+			dev_err(dev, "Rtk otp write failed\n");
+			return -1;
+		}
+	}
 
-	rtk_otp_process(dev, plat);
 	return 0;
 }
 
@@ -182,56 +298,10 @@ static int rtk_otp_ofdata_to_platdata(struct udevice *dev)
 {
 	struct rtk_otp_platdata *plat = dev_get_platdata(dev);
 
-	ameba_ipc_probe(dev, &plat->pipc_dev);
+	plat->mem_base = (void __iomem *)dev_read_addr_size_index(dev, 0, &plat->mem_len);
+	plat->sys_base = (void __iomem *)dev_read_addr_index(dev, 1);
 
 	return 0;
-}
-
-static int rtk_otp_probe(struct udevice *dev)
-{
-	int ret;
-	struct rtk_otp *otp = NULL;
-	struct rtk_otp_platdata *plat = dev_get_platdata(dev);
-
-	otp = &plat->otp;
-	otp->dev = dev;
-
-	/* allocate the ipc channel */
-	otp->potp_ipc_ch = ameba_ipc_alloc_ch(sizeof(struct rtk_otp));
-	if (!otp->potp_ipc_ch) {
-		ret = -ENOMEM;
-		dev_err(dev, "No memory for IPC channel\n");
-		goto func_exit;
-	}
-
-	/* Initialize the IPC channel */
-	otp->potp_ipc_ch->port_id = AIPC_PORT_NP;
-	otp->potp_ipc_ch->ch_id = 6; /* configure channel 6 */
-	otp->potp_ipc_ch->ch_config = AIPC_CONFIG_NOTHING;
-	otp->potp_ipc_ch->priv_data = otp;
-
-	/* Register the otp ipc channel */
-	ret = ameba_ipc_channel_register(dev, otp->potp_ipc_ch, &plat->pipc_dev);
-	if (ret < 0) {
-		dev_err(dev, "Fail to register IPC channel\n");
-		goto free_ipc_ch;
-	}
-
-	if (!otp->potp_ipc_ch->pdev) {
-		dev_err(dev, "No device in registered IPC channel\n");
-		goto free_ipc_ch;
-	}
-
-	plat->otp_done = 1;
-	otp->ameba_otp = plat;
-
-	goto func_exit;
-
-free_ipc_ch:
-	kfree(otp->potp_ipc_ch);
-
-func_exit:
-	return ret;
 }
 
 static const struct misc_ops rtk_otp_ops = {
@@ -251,5 +321,4 @@ U_BOOT_DRIVER(rtk_otp) = {
 	.ofdata_to_platdata = rtk_otp_ofdata_to_platdata,
 	.platdata_auto_alloc_size = sizeof(struct rtk_otp_platdata),
 	.ops = &rtk_otp_ops,
-	.probe = rtk_otp_probe,
 };
