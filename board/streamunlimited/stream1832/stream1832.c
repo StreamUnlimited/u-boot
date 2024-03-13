@@ -527,6 +527,14 @@ int board_axp313_init(void)
 	int ret = 0;
 
 	/*
+	 * Set the DCDC3 (WIFI_1V8) workmode to PWM as on the new Stream1833AE the ripple
+	 * is too high in "auto" mode, so set it to PWM.
+	 */
+	if (current_device.module_version == 5 || current_device.module_version == 6) {
+		ret |= axp313_set_dcdc_workmode(AXP313_DCDC3, AXP313_DCDC_WORKMODE_PWM);
+	}
+
+	/*
 	 * Also reset DCDC3 to 1.8 V ,This is also the default value of the AXP313 after power on.
 	 */
 	ret |= axp313_set_dcdc3(1800);
