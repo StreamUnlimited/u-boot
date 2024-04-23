@@ -11,13 +11,14 @@
 #include <dm.h>
 #include <errno.h>
 #include <log.h>
-#include <serial_ameba.h>
 #include <reset.h>
 #include <serial.h>
 #include <watchdog.h>
 #include <linux/err.h>
 #include <linux/types.h>
 #include <asm/io.h>
+
+#include "serial_ameba.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
