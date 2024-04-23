@@ -10,6 +10,7 @@
 #include <linux/compat.h>
 #include <mtd.h>
 #include <usb.h>
+#include <watchdog.h>
 
 #include "realtek/bspchip.h"
 
@@ -129,6 +130,7 @@ int print_cpuinfo(void)
 #if defined(CONFIG_BOARD_EARLY_INIT_R)
 int board_early_init_r(void)
 {
+	hw_watchdog_init();
 	return 0;
 }
 #endif
