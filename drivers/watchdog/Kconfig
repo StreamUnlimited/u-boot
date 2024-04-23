@@ -54,6 +54,12 @@ config DESIGNWARE_WATCHDOG
 	  Enable this to support Designware Watchdog Timer IP, present e.g.
 	  on Altera SoCFPGA SoCs.
 
+config AMEBAD2_WATCHDOG
+	bool "Realtek AmebaD2 watchdog"
+	select HW_WATCHDOG if !WDT
+	help
+	  Say Y here to enable Realtek AmebaD2 watchdog driver.
+
 config WDT
 	bool "Enable driver model for watchdog timer drivers"
 	depends on DM
