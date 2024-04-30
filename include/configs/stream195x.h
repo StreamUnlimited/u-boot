@@ -111,6 +111,7 @@
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"fdt_addr=0x43800000\0"			\
+	"fdt_high=0x4f700000\0"			\
 	PARTITIONS "\0" \
 	"carrierboard=kit1955\0" \
 	"console=ttymxc0,115200\0" \
