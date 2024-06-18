@@ -17,7 +17,7 @@
 		ranges;
 
 		loguart: dwapb@4200c000 {
-			compatible = "realtek,amebad2-loguart";
+			compatible = "realtek,ameba-loguart";
 			reg = <0x4200c000 0x100>;
 			reg-shift = <2>;
 			reg-io-width = <1>;
@@ -63,7 +63,7 @@
 		};
 
 		usb_phy: usb-phy@41000000 {
-			compatible = "realtek,amebad2-otg-phy";
+			compatible = "realtek,ameba-otg-phy";
 			reg = <0x400B0000 0x20>,
 				<0x41000060 4>,
 				<0x42008000 0x400>;
@@ -72,7 +72,7 @@
 		};
 
 		otp: otp@0 {
-			compatible = "realtek,amebad2-otp";
+			compatible = "realtek,ameba-otp";
 			reg = <0x42000000 0x800>,
 				<0x42008000 0x1000>;
 		};
