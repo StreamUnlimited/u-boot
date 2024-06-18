@@ -578,7 +578,7 @@ config ISW_ENTRY_ADDR
 	  image headers.
 endif
 
-source "board/realtek/amebad2/Kconfig"
+source "board/realtek/amebasmart/Kconfig"
 
 source "arch/arm/Kconfig.debug"
 

@@ -310,12 +310,12 @@ static const struct misc_ops rtk_otp_ops = {
 };
 
 static const struct udevice_id rtk_otp_ids[] = {
-	{ .compatible = "realtek,amebad2-otp" },
+	{ .compatible = "realtek,ameba-otp" },
 	{}
 };
 
 U_BOOT_DRIVER(rtk_otp) = {
-	.name = "realtek-amebad2-otp",
+	.name = "realtek-ameba-otp",
 	.id = UCLASS_MISC,
 	.of_match = rtk_otp_ids,
 	.ofdata_to_platdata = rtk_otp_ofdata_to_platdata,

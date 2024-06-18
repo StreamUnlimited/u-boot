@@ -41,6 +41,18 @@ int rtk_misc_get_rl_version(void)
 
 EXPORT_SYMBOL(rtk_misc_get_rl_version);
 
+void reset_misc(void)
+{
+	writel(0U, SYSTEM_CTRL_BASE_LP + REG_AON_SYSRST_MSK);
+	writel(0U, SYSTEM_CTRL_BASE_LP + REG_LSYS_SYSRST_MSK0);
+	writel(0U, SYSTEM_CTRL_BASE_LP + REG_LSYS_SYSRST_MSK1);
+	writel(0U, SYSTEM_CTRL_BASE_LP + REG_LSYS_SYSRST_MSK2);
+
+	writel(SYS_RESET_KEY, SYSTEM_CTRL_BASE_LP + REG_LSYS_SW_RST_TRIG);
+	writel(LSYS_BIT_LPSYS_RST << AP_CPU_ID, SYSTEM_CTRL_BASE_LP + REG_LSYS_SW_RST_CTRL);
+	writel(SYS_RESET_TRIG, SYSTEM_CTRL_BASE_LP + REG_LSYS_SW_RST_TRIG);
+}
+
 int syscfg_get_secure_enable(void)
 {
 	u32 value0 = REG32(OTPC_REG_BASE + SEC_OTP_SYSCFG0);

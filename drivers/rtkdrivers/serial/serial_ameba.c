@@ -11,13 +11,12 @@
 #include <dm.h>
 #include <errno.h>
 #include <log.h>
-#include <serial_ameba.h>
-#include <reset.h>
 #include <serial.h>
-#include <watchdog.h>
 #include <linux/err.h>
 #include <linux/types.h>
 #include <asm/io.h>
+
+#include "serial_ameba.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -132,6 +131,7 @@ static int ameba_serial_setbrg(struct udevice *dev, int baudrate)
 	/* Clean Rx break signal interrupt status at initial stage*/
 	reg_value = readl(&regs->SPR);
 	reg_value |= RUART_SP_REG_RXBREAK_INT_STATUS;
+	writel(reg_value, &regs->SPR);
 
 	/* Set OVSR(xfactor) */
 	reg_value = readl(&regs->STSR);
@@ -195,10 +195,6 @@ static int ameba_serial_probe(struct udevice *dev)
 	plat->base = addr;
 	plat->clock = dev_read_u32_default(dev, "clock", 1);
 
-	/*
-	 * TODO: Reinitialization doesn't always work for now, just skip
-	 *       init always - we know we're already initialized
-	 */
 	plat->skip_init = true;
 
 	priv->regs = (struct ameba_regs *)plat->base;
@@ -207,13 +203,13 @@ static int ameba_serial_probe(struct udevice *dev)
 }
 
 static const struct udevice_id ameba_serial_id[] = {
-	{.compatible = "realtek,amebad2-loguart"},
+	{.compatible = "realtek,ameba-loguart"},
 	{}
 };
 #endif
 
 U_BOOT_DRIVER(serial_ameba) = {
-	.name = "realtek-amebad2-loguart",
+	.name = "realtek-ameba-loguart",
 	.id = UCLASS_SERIAL,
 	.of_match = of_match_ptr(ameba_serial_id),
 	.platdata_auto_alloc_size = sizeof(struct ameba_serial_platdata),

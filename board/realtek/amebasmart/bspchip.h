@@ -105,4 +105,20 @@
 #define CCI_ENABLE_DVM_REQ		0x2
 #define CCI_ENABLE_REQ			(CCI_ENABLE_SNOOP_REQ)
 
+/*
+ * AON/LSYS registers
+ */
+#define REG_AON_SYSRST_MSK      0x00D0
+#define REG_LSYS_SW_RST_CTRL    0x0238
+#define REG_LSYS_SW_RST_TRIG    0x023C
+#define REG_LSYS_SYSRST_MSK0    0x02D0
+#define REG_LSYS_SYSRST_MSK1    0x02D4
+#define REG_LSYS_SYSRST_MSK2    0x02D8
+
+#define LSYS_BIT_LPSYS_RST      ((u32)0x00000001 << 29)
+#define SYS_RESET_KEY           0x96969696
+#define SYS_RESET_TRIG          0x69696969
+
+#define AP_CPU_ID               2
+
 #endif /*  _BSPCHIP_H_ */

@@ -1,1 +1,0 @@
-../../board/realtek/amebad2/ameba.h
