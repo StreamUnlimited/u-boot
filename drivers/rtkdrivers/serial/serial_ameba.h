@@ -40,7 +40,7 @@ struct ameba_regs {
 	/* AmebaZ change */
 	u32 FCR;				/*!< LOGUART FIFO Control register,							Address offset: 0x54*/
 
-	/* AmebaD2 change */
+	/* AmebaSmart change */
 	u32 AGGC;				/*!< LOGUART AGG Control register,							Address offset: 0x58*/
 	u32 THR1;				/*!< LOGUART transmitter holding register1,					Address offset: 0x5C*/
 	u32 THR2;				/*!< LOGUART transmitter holding register2,					Address offset: 0x60*/

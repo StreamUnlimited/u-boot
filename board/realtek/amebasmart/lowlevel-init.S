@@ -37,7 +37,7 @@ ENTRY(lowlevel_init)
 	bne     2b
 #endif
 
-/* amebad2 platform is a7, no need use ifdef */
+/* amebasmart platform is a7, no need use ifdef */
 //#ifdef CONFIG_SOC_CPU_ARMA7
 	/* Enable SMP bit for core 0 */
 	mrc     p15, 0, r0, c1, c0, 1   @ read ACTLR

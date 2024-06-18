@@ -12,14 +12,11 @@
 #include <fdtdec.h>
 #include <generic-phy.h>
 #include <log.h>
-#include <reset.h>
-#include <syscon.h>
 #include <usb.h>
 #include <asm/io.h>
 #include <dm/device_compat.h>
 #include <linux/bitops.h>
 #include <linux/delay.h>
-#include <realtek/misc.h>
 
 /* USB PHY registers */
 #define USB_OTG_PHY_REG_E0								0xE0U
@@ -125,22 +122,7 @@ struct rtk_usb_phy_cal_data_t {
 	u8 val;
 };
 
-static const struct rtk_usb_phy_cal_data_t rtk_usb_cut_a_cal_data[] = {
-	{0x00, 0xE0, 0x9D},
-	{0x00, 0xE1, 0x19},
-	{0x00, 0xE2, 0xDB},
-	{0x00, 0xE4, 0x6D},
-	{0x01, 0xE5, 0x0A},
-	{0x01, 0xE6, 0xD8},
-	{0x02, 0xE7, 0x32},
-	{0x01, 0xE0, 0x04},
-	{0x01, 0xE0, 0x00},
-	{0x01, 0xE0, 0x04},
-
-	{0xFF, 0x00, 0x00}
-};
-
-static const struct rtk_usb_phy_cal_data_t rtk_usb_cut_b_cal_data[] = {
+static const struct rtk_usb_phy_cal_data_t rtk_usb_cal_data[] = {
 	{0x00, 0xE0, 0x9D},
 	{0x00, 0xE1, 0x19},
 	{0x00, 0xE2, 0xDB},
@@ -246,7 +228,7 @@ static int rtk_phy_page_set(struct phy *p, uintptr_t dwc, u8 page)
 int rtk_phy_calibrate(struct phy *p, uintptr_t dwc)
 {
 	u8 ret = 0;
-	struct rtk_usb_phy_cal_data_t *data;
+	struct rtk_usb_phy_cal_data_t *data = (struct rtk_usb_phy_cal_data_t *)rtk_usb_cal_data;
 	u8 old_page = 0xFF;
 
 	if (p == NULL) {
@@ -255,12 +237,6 @@ int rtk_phy_calibrate(struct phy *p, uintptr_t dwc)
 
 	/* 3ms + 2.5us from DD, 3ms already delayed after soft disconnect */
 	udelay(3);
-
-	if (rtk_misc_get_rl_version() != RTK_CUT_VERSION_A) {
-		data = (struct rtk_usb_phy_cal_data_t *)rtk_usb_cut_b_cal_data;
-	} else {
-		data = (struct rtk_usb_phy_cal_data_t *)rtk_usb_cut_a_cal_data;
-	}
 
 	while (data->page != 0xFF) {
 		if (data->page != old_page) {
@@ -295,10 +271,8 @@ static int rtk_usbphy_phy_init(struct phy *p)
 
 	reg = readl(clk_base + REG_LSYS_AIP_CTRL1);
 	reg |= (LSYS_BIT_BG_PWR | LSYS_BIT_BG_ON_USB2);
-	if (rtk_misc_get_rl_version() != RTK_CUT_VERSION_A) {
-		reg &= ~LSYS_MASK_BG_ALL;
-		reg |= LSYS_BG_ALL(0x2);
-	}
+	reg &= ~LSYS_MASK_BG_ALL;
+	reg |= LSYS_BG_ALL(0x2);
 	writel(reg, clk_base + REG_LSYS_AIP_CTRL1);
 
 	setbits_le32(clk_base + REG_LSYS_CKE_GRP1, APBPeriph_USB_CLOCK);
@@ -444,12 +418,12 @@ static const struct phy_ops rtk_usbphy_ops = {
 };
 
 static const struct udevice_id rtk_usbphy_of_match[] = {
-	{ .compatible = "realtek,amebad2-otg-phy", },
+	{ .compatible = "realtek,ameba-otg-phy", },
 	{ },
 };
 
 U_BOOT_DRIVER(rtk_usb_phy_driver) = {
-	.name = "realtek-amebad2-otg-phy",
+	.name = "realtek-ameba-otg-phy",
 	.id = UCLASS_PHY,
 	.of_match = rtk_usbphy_of_match,
 	.ops = &rtk_usbphy_ops,
