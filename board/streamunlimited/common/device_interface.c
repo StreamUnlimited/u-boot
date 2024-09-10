@@ -42,8 +42,9 @@ struct module_map_entry {
 };
 
 static const struct module_map_entry module_map[] = {
-	{ SUE_MODULE_S195X, 0, 0x00 },
-	{ SUE_MODULE_S195X, 0, 0x01 },
+	{ SUE_MODULE_S195X, 0, 0x00 }, // M/Q/P/N/O
+	{ SUE_MODULE_S195X, 0, 0x01 }, // I/J/K
+	{ SUE_MODULE_S195X, 0, 0x03 }, // IE/KE
 };
 
 extern struct sue_carrier_ops generic_board_ops;
