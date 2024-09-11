@@ -42,6 +42,7 @@
         "reset;\0" \
 \
     "flash_boot=echo \"Booting from flash ...\"; " \
+        "run setfitconfig; " \
         "run flashargs; " \
         "echo \"INFO: loading fit image into RAM...\"; " \
         /*"bstate booting; "*/ \
@@ -55,6 +56,7 @@
         "secure_board=${secure_board};\0" \
 \
     "swu_flash_boot=echo \"Booting swu from flash ...\"; " \
+        "run setfitconfig; " \
         "run swuflashargs; " \
         "echo \"INFO: loading swu fit image into RAM...\"; " \
         /*"bstate dontunplug; "*/ \
