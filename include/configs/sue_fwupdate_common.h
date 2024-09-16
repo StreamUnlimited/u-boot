@@ -180,6 +180,13 @@
                     "boot_swupdate=yes; " \
                 "fi; " \
             "fi; " \
+            "if test \"${update_in_progress}\" = \"1\"; " \
+                "then " \
+                "echo \"WARNING: Unfinished update, should be retried! \"; " \
+                "echo \"INFO: Setting flags fail and update...\"; " \
+                "fwup set fail; " \
+                "fwup set update; " \
+            "fi; " \
         "else " \
             "echo \"INFO: Bootcount != 1, not checking factory state or USB update request\"; " \
         "fi; " \
