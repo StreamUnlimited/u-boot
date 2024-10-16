@@ -4,6 +4,7 @@
 #include <asm/io.h>
 #include <env.h>
 #include <command.h>
+#include <asm/gpio.h>
 
 #include "fwupdate.h"
 #include "flags_amebad2.h"
@@ -42,8 +43,28 @@ static int fwupdate_setBootCount(uint8_t bootCnt)
 
 static int fwupdate_getUsbUpdateReq(void)
 {
-	printf("TODO: Implement fwupdate_getUsbUpdateReq()\n");
-	return 0;
+	int ret;
+	unsigned int gpio;
+
+	// gpio pb18 -> force usb update
+	const char *gpio_name = "PB18";
+
+	ret = gpio_lookup_name(gpio_name, NULL, NULL, &gpio);
+        if (ret) {
+                printf("GPIO: '%s' not found\n", gpio_name);
+		return 0;
+        }
+        /* grab the pin before we tweak it */
+        ret = gpio_request(gpio, "fwupdate_active_gpio");
+        if (ret && ret != -EBUSY) {
+                printf("gpio: requesting pin %u failed\n", gpio);
+                return 0;
+	}
+
+	gpio_direction_input(gpio);
+	ret = gpio_get_value(gpio);
+
+	return !ret;
 }
 
 #if defined(CONFIG_BOOTCOUNT_FWUPDATE)
