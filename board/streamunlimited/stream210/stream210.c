@@ -4,6 +4,7 @@
 #include <config.h>
 #include <command.h>
 #include <asm/io.h>
+#include <asm/gpio.h>
 #include <asm/global_data.h>
 #include <cpu_func.h>
 #include <sue_secureboot.h>
@@ -194,19 +195,30 @@ int board_early_init_r(void)
 
 int board_usb_init(int index, enum usb_init_type init)
 {
-	// There is no Realtek GPIO driver in the U-Boot,
-	// so we just set PB28 manually to high or low depending
-	// on the USB mode we want by writing to the DR and DDR
-	// register accordingly.
+	int ret;
+	unsigned int gpio;
+
+	// gpio pb28 -> change usb mode
+	const char *gpio_name = "PB28";
+
+	ret = gpio_lookup_name(gpio_name, NULL, NULL, &gpio);
+        if (ret) {
+                printf("GPIO: '%s' not found\n", gpio_name);
+		return ret;
+        }
+
+        ret = gpio_request(gpio, "usb_mode_gpio");
+        if (ret && ret != -EBUSY) {
+                printf("gpio: requesting pin %u failed\n", gpio);
+                return ret;
+	}
 
 	if (init == USB_INIT_DEVICE) {
 		printf("Setting USB to device mode\n");
-		clrsetbits_le32(GPIO_B_DR_REG, BIT(28), 0);
-		clrsetbits_le32(GPIO_B_DDR_REG, BIT(28), BIT(28));
+		gpio_direction_output(gpio, 0);
 	} else {
 		printf("Setting USB to host mode\n");
-		clrsetbits_le32(GPIO_B_DR_REG, BIT(28), BIT(28));
-		clrsetbits_le32(GPIO_B_DDR_REG, BIT(28), BIT(28));
+		gpio_direction_output(gpio, 1);
 	}
 
 	return 0;
