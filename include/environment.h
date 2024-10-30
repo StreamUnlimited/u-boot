@@ -229,10 +229,10 @@ int force_default_vars(int nvars, char * const vars[]);
 int env_import(const char *buf, int check);
 
 /*
- * Check if CRC is valid and (if yes) import the environment with the H_NOCLEAR | H_FORCE flags.
+ * Check if CRC is valid and (if yes) import the environment, completely or only the given vars.
  * Note that "buf" may or may not be aligned.
  */
-int env_merge(const char *buf, int check);
+int env_merge(const char *buf, int check, int nvars, char * const vars[]);
 
 /* Export from hash table into binary representation */
 int env_export(env_t *env_out);
