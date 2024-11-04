@@ -949,9 +949,9 @@ int himport_r(struct hsearch_data *htab,
 		 *    it might be a typo
 		 */
 		if (hdelete_r(localvars[i], htab, flag) == 0)
-			printf("WARNING: '%s' neither in running nor in imported env!\n", localvars[i]);
+			debug("WARNING: '%s' neither in running nor in imported env!\n", localvars[i]);
 		else
-			printf("WARNING: '%s' not in imported env, deleting it!\n", localvars[i]);
+			debug("WARNING: '%s' not in imported env, deleting it!\n", localvars[i]);
 	}
 
 end:

@@ -238,12 +238,13 @@ int env_import(const char *buf, int check)
 }
 
 /*
- * Check if CRC is valid and (if yes) import the environment with the H_NOCLEAR | H_FORCE flags.
+ * Check if CRC is valid and (if yes) import the environment, completely or only the given vars.
  * Note that "buf" may or may not be aligned.
  */
-int env_merge(const char *buf, int check)
+int env_merge(const char *buf, int check, int nvars, char * const vars[])
 {
 	env_t *ep = (env_t *)buf;
+	int flags = nvars > 0 ? H_FORCE : H_NOCLEAR | H_FORCE;
 	int ret;
 
 	if (check) {
@@ -265,8 +266,8 @@ int env_merge(const char *buf, int check)
 		return ret;
 	}
 
-	if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE, '\0', H_NOCLEAR | H_FORCE, 0,
-			0, NULL)) {
+	if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE, '\0', flags, 0,
+			nvars, vars)) {
 		gd->flags |= GD_FLG_ENV_READY;
 		return 1;
 	}

@@ -49,6 +49,11 @@ env_t *env_ptr = (env_t *)CONFIG_NAND_ENV_DST;
 env_t *env_ptr;
 #endif /* ENV_IS_EMBEDDED */
 
+#ifndef ENV_VARS_WHITELIST
+#define ENV_VARS_WHITELIST {};
+#endif
+static char* const env_vars_whitelist[] = ENV_VARS_WHITELIST;
+
 DECLARE_GLOBAL_DATA_PTR;
 
 /*
@@ -383,16 +388,17 @@ void env_relocate_spec(void)
 	 */
 	if (!is_hab_enabled()) {
 		set_default_env("");
+		env_flags = ep->flags;
+		env_merge((char *)ep, 0, 0, NULL);
 	}
 
 	env_flags = ep->flags;
-	env_merge((char *)ep, 0);
-
 done:
 	free(tmp_env1);
 	free(tmp_env2);
 
 	if (is_hab_enabled()) {
+		env_merge((char *)ep, 0, sizeof(env_vars_whitelist)/sizeof(env_vars_whitelist[0]), env_vars_whitelist);
 		puts("Board is locked, resetting variables to their default values\n");
 
 		if (force_default_vars(0, NULL) == 0) {
@@ -446,11 +452,9 @@ void env_relocate_spec(void)
 	 */
 	if (!is_hab_enabled()) {
 		set_default_env("");
-	}
-
-	env_merge(buf, 1);
-
-	if (is_hab_enabled()) {
+		env_merge(buf, 1, 0, NULL);
+	} else {
+		env_merge(buf, 1, sizeof(env_vars_whitelist)/sizeof(env_vars_whitelist[0]), env_vars_whitelist);
 		puts("Board is locked, resetting variables to their default values\n");
 
 		if (force_default_vars(0, NULL) == 0) {
