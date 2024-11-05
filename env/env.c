@@ -192,15 +192,18 @@ int env_load(void)
 	struct env_driver *drv;
 	int best_prio = -1;
 	int prio;
+	bool locked = false;
 
 #if CONFIG_IS_ENABLED(SUE_SECURE_BOOT)
-	env_set_default("Loading default environment for merging\n", H_INTERACTIVE);
-
-	if (is_sue_secureboot()) {
-		printf("Board is locked, not merging with environment from NAND\n");
-		return 0;
-	}
+	locked = is_sue_secureboot();
 #endif
+
+	/* The bootcmd and other variables needed for proper boot are normally found only in the default
+	 * environment. If the module is unlocked, we load the default environment first, and then merge
+	 * it with the stored one. This ensures that any variables set during development are applied.
+	 */
+	if (!locked)
+		env_set_default("Loading default environment for merging\n", H_INTERACTIVE);
 
 	for (prio = 0; (drv = env_driver_lookup(ENVOP_LOAD, prio)); prio++) {
 		int ret;
@@ -211,7 +214,7 @@ int env_load(void)
 		if (!env_has_inited(drv->location))
 			continue;
 
-		printf("Merging Environment from %s... ", drv->name);
+		printf("Loading Environment from %s... ", drv->name);
 		/*
 		 * In error case, the error message must be printed during
 		 * drv->load() in some underlying API, and it must be exactly
@@ -220,6 +223,11 @@ int env_load(void)
 		ret = drv->load();
 		if (!ret) {
 			printf("OK\n");
+			if (locked) {
+				/* Locked: reset all variables that are present in the default environment. */
+				printf("Board is locked, applying the default overrides\n");
+				env_set_default_vars(0, NULL, H_INTERACTIVE);
+			}
 			return 0;
 		} else if (ret == -ENOMSG) {
 			/* Handle "bad CRC" case */
@@ -228,6 +236,11 @@ int env_load(void)
 		} else {
 			debug("Failed (%d)\n", ret);
 		}
+	}
+
+	if (locked) {
+		env_set_default("Loading default environment\n", H_INTERACTIVE);
+		return -ENODEV;
 	}
 
 	/*
@@ -316,15 +329,6 @@ int env_init(void)
 	struct env_driver *drv;
 	int ret = -ENOENT;
 	int prio;
-
-#if CONFIG_IS_ENABLED(SUE_SECURE_BOOT)
-	if (is_sue_secureboot()) {
-		gd->env_addr = (ulong)&default_environment[0];
-		gd->env_valid = ENV_VALID;
-
-		return 0;
-	}
-#endif
 
 	for (prio = 0; (drv = env_driver_lookup(ENVOP_INIT, prio)); prio++) {
 		if (!drv->init || !(ret = drv->init()))

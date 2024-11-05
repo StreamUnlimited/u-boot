@@ -20,6 +20,15 @@
 #include <malloc.h>
 #include <u-boot/crc.h>
 
+#if CONFIG_IS_ENABLED(SUE_SECURE_BOOT)
+#include <sue_secureboot.h>
+#endif
+#ifndef ENV_VARS_WHITELIST
+#define ENV_VARS_WHITELIST {};
+#endif
+static char* const env_vars_whitelist[] = ENV_VARS_WHITELIST;
+
+
 DECLARE_GLOBAL_DATA_PTR;
 
 /************************************************************************
@@ -112,6 +121,15 @@ int env_set_default_vars(int nvars, char * const vars[], int flags)
 int env_import(const char *buf, int check)
 {
 	env_t *ep = (env_t *)buf;
+	int flags = H_NOCLEAR | H_FORCE;
+	int nvars = 0;
+
+#if CONFIG_IS_ENABLED(SUE_SECURE_BOOT)
+	if (is_sue_secureboot()) {
+		flags = H_FORCE;
+		nvars = sizeof(env_vars_whitelist)/sizeof(env_vars_whitelist[0]);
+	}
+#endif
 
 	if (check) {
 		uint32_t crc;
@@ -125,17 +143,11 @@ int env_import(const char *buf, int check)
 	}
 
 	/*
-	 * We set the H_NOCLEAR flag here, this allows us to merge an already
-	 * existing env hashtable with the imported values. This is the behaviour
-	 * we ultimately want because in our use case we sometimes only have
-	 * version information in the NAND and no other U-Boot variables
-	 * (like bootcmd). So to be able to boot, we first load the default env
-	 * inside env_load() and then the respecive storage drivers will call
-	 * env_import() where the storage environment will be merged with the
-	 * default one.
+	 * Locked: import the whitelisted variables only, erasing the previous table if any.
+	 * Unlocked: import everything, and merge with already existing values (H_NOCLEAR).
 	 */
-	if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE, '\0', H_NOCLEAR, 0,
-			0, NULL)) {
+	if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE, '\0', flags, 0,
+			nvars, nvars ? env_vars_whitelist : NULL)) {
 		gd->flags |= GD_FLG_ENV_READY;
 		return 0;
 	}
