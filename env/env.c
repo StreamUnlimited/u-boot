@@ -170,15 +170,18 @@ int env_load(void)
 {
 	struct env_driver *drv;
 	int prio;
-
-	set_default_env("Loading default environment for merging\n");
+	bool locked = false;
 
 #ifdef CONFIG_SECURE_BOOT
-	if (imx_hab_is_enabled()) {
-		printf("Board is locked, not merging with environment from NAND\n");
-		return 0;
-	}
+	locked = imx_hab_is_enabled();
 #endif
+
+	/* The bootcmd and other variables needed for proper boot are normally found only in the default
+	 * environment. If the module is unlocked, we load the default environment first, and then merge
+	 * it with the stored one. This ensures that any variables set during development are applied.
+	 */
+	if (!locked)
+		set_default_env("Loading default environment for merging\n");
 
 	for (prio = 0; (drv = env_driver_lookup(ENVOP_LOAD, prio)); prio++) {
 		int ret;
@@ -189,17 +192,23 @@ int env_load(void)
 		if (!env_has_inited(drv->location))
 			continue;
 
-		printf("Merging Environment from %s... ", drv->name);
+		printf("Loading Environment from %s... ", drv->name);
 		ret = drv->load();
-		if (ret)
-			printf("Failed (%d)\n", ret);
-		else
+		if (ret == 0) {
 			printf("OK\n");
-
-		if (!ret)
+			if (locked) {
+				/* Locked: reset all variables that are present in the default environment. */
+				printf("Board is locked, applying the default overrides\n");
+				set_default_vars(0, NULL);
+			}
 			return 0;
+		} else {
+			printf("Failed (%d)\n", ret);
+		}
 	}
 
+	if (locked)
+		set_default_env("Loading default environment\n");
 	return -ENODEV;
 }
 
@@ -243,15 +252,6 @@ int env_init(void)
 	struct env_driver *drv;
 	int ret = -ENOENT;
 	int prio;
-
-#ifdef CONFIG_SECURE_BOOT
-	if (imx_hab_is_enabled()) {
-		gd->env_addr = (ulong)&default_environment[0];
-		gd->env_valid = ENV_VALID;
-
-		return 0;
-	}
-#endif
 
 	for (prio = 0; (drv = env_driver_lookup(ENVOP_INIT, prio)); prio++) {
 		if (!drv->init || !(ret = drv->init()))

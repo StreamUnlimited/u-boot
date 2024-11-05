@@ -287,4 +287,10 @@
 #define SUE_FWUPDATE_ALTBOOTCOMMAND \
         "echo \"ERROR: Maximum boot count reached!\"; while true; do sleep 100; done; "
 
+/* List of variables that can be safely imported from the user environment when locked. */
+#define ENV_VARS_WHITELIST \
+        {"uboot_vers", "swu-fit_vers", "rootfs_vers", "fit_vers", \
+         "update_url", "update_url_cache", "update_in_progress"}; \
+
+
 #endif /* __SUE_FWUPDATE_COMMON_H */
