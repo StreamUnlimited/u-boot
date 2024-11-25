@@ -187,7 +187,7 @@ ASFLAGS			+= 	${FIRMWARE_CPPFLAGS}
 CFLAGS			+= 	${FIRMWARE_CPPFLAGS}
 CFLAGS			+= 	-Wno-unused
 
-LDFLAGS			+=	--fatal-warnings -O1
+LDFLAGS			+=	--fatal-warnings -O1 --no-warn-rwx-segments
 LDFLAGS			+=	--gc-sections
 
 CC			:=	${CROSS_COMPILE}gcc
