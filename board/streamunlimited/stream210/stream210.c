@@ -8,6 +8,7 @@
 #include <cpu_func.h>
 #include <sue_secureboot.h>
 #include <linux/compat.h>
+#include <linux/delay.h>
 #include <mtd.h>
 #include <usb.h>
 #include <watchdog.h>
@@ -140,9 +141,48 @@ int print_cpuinfo(void)
 #endif
 
 #if defined(CONFIG_BOARD_EARLY_INIT_R)
+
+#define RTK_THERMAL_RESULT_REG	(0x42013000 + 0x10)
+
+// Only continue booting if the temperature is not above this threshold
+#define THERMAL_BOOT_THRESHOLD	95000
+
+static int rtk_thermal_get_temp(void)
+{
+	u32 reg = readl(RTK_THERMAL_RESULT_REG);
+	int temp = 0;
+
+	// Based on `realtek_thermal_get_temp()` from `realtek-thermal.c` in
+	// the Linux kernel.
+	// The result register contains the integer part of the temperature in the bits[17:10]
+	// and the decimal part of the temperature in the bits[9:0]. This layout allows us to
+	// simplify the calculation to a multiplication by 1000 and a division by 1024 (>> 10)
+	// to get the final result in millidegree Celcius resolution.
+	if (reg >= 0x40000) {
+		temp = -(int)(((0x80000 - reg) * 1000) >> 10);
+	} else {
+		temp = (int)((reg * 1000) >> 10);
+	}
+
+	return temp;
+}
+
 int board_early_init_r(void)
 {
+	while(true) {
+		int temp = rtk_thermal_get_temp();
+
+		printf("Temperature: %d °C\n", temp / 1000);
+
+		if (temp <= THERMAL_BOOT_THRESHOLD)
+			break;
+
+		printf("Temperature above threshold (%d °C), waiting for cooldown\n", THERMAL_BOOT_THRESHOLD / 1000);
+		udelay(1000 * 1000);
+	}
+
 	hw_watchdog_init();
+
 	return 0;
 }
 #endif
