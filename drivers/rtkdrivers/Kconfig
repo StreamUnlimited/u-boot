@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: GPL-2.0
+menu "Drivers for Realtek"
+
+source "drivers/rtkdrivers/phy/Kconfig"
+
+source "drivers/rtkdrivers/spi/Kconfig"
+
+source "drivers/rtkdrivers/serial/Kconfig"
+
+source "drivers/rtkdrivers/otp/Kconfig"
+
+endmenu

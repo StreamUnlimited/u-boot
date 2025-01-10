@@ -55,7 +55,8 @@ DECLARE_GLOBAL_DATA_PTR;
 	defined(CONFIG_ENV_IS_IN_SATA)		|| \
 	defined(CONFIG_ENV_IS_IN_SPI_FLASH)	|| \
 	defined(CONFIG_ENV_IS_IN_REMOTE)	|| \
-	defined(CONFIG_ENV_IS_IN_UBI)
+	defined(CONFIG_ENV_IS_IN_UBI)		|| \
+	defined(CONFIG_ENV_IS_IN_MTD)
 
 #define ENV_IS_IN_DEVICE
 

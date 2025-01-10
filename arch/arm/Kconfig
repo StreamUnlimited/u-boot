@@ -286,6 +286,11 @@ config CPU_V7R
 	select SYS_ARM_MPU
 	select SYS_CACHE_SHIFT_6
 
+# CPU_V8 implies armv8a aarch32 mode
+config CPU_V8
+	bool
+	select CPU_V7A
+
 config CPU_PXA
 	bool
 	select SYS_CACHE_SHIFT_5
@@ -527,7 +532,13 @@ config ARM64_SUPPORT_AARCH32
 
 choice
 	prompt "Target select"
-	default TARGET_HIKEY
+	default TARGET_AMEBASMART
+
+config TARGET_AMEBASMART
+	bool "Realtek RTL8730E Platform"
+	select CPU_V8
+	select SYS_ARCH_TIMER
+	select OF_LIBFDT
 
 config ARCH_AT91
 	bool "Atmel AT91"
@@ -1921,6 +1932,7 @@ source "board/xilinx/Kconfig"
 source "board/xilinx/zynq/Kconfig"
 source "board/xilinx/zynqmp/Kconfig"
 source "board/phytium/durian/Kconfig"
+source "board/realtek/amebasmart/Kconfig"
 
 source "arch/arm/Kconfig.debug"
 

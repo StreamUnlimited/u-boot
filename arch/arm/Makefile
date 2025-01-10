@@ -14,8 +14,16 @@ arch-$(CONFIG_CPU_SA1100)	=-march=armv4
 arch-$(CONFIG_CPU_PXA)		=
 arch-$(CONFIG_CPU_ARM1136)	=-march=armv5t
 arch-$(CONFIG_CPU_ARM1176)	=-march=armv5t
+ifeq ($(CONFIG_CPU_V8),)
 arch-$(CONFIG_CPU_V7A)		=$(call cc-option, -march=armv7-a, \
-				 $(call cc-option, -march=armv7))
+				 $(call cc-option,-march=armv7ve,-march=armv5t -Wa$(comma)-march=armv7-a))
+else
+arch-$(CONFIG_CPU_V7A)		=$(call cc-option,-march=armv8.2-a+fp16+dotprod, \
+				 $(call cc-option,-march=armv8.2-a, \
+				 $(call cc-option,-march=armv8-a+crc, \
+				 $(call cc-option,-march=armv8-a, \
+				 $(call cc-option,-march=armv7-a -Wa$(comma)-march=armv8-a)))))
+endif
 arch-$(CONFIG_CPU_V7M)		=-march=armv7-m
 arch-$(CONFIG_CPU_V7R)		=-march=armv7-r
 arch-$(CONFIG_ARM64)		=-march=armv8-a

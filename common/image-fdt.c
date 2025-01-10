@@ -294,7 +294,16 @@ int boot_get_fdt(int flag, int argc, char *const argv[], uint8_t arch,
 
 	if (argc > 2)
 		select = argv[2];
-	if (select || genimg_has_config(images)) {
+	/*
+	 * Look for a '-' which indicates to ignore the
+	 * FDT argument
+	 */
+	if (select && strcmp(select, "-") ==  0) {
+		debug("## Skipping Flattened Device Tree\n");
+		*of_flat_tree = NULL;
+		*of_size = 0;
+		return 0;
+	} else if (select || genimg_has_config(images)) {
 #if CONFIG_IS_ENABLED(FIT)
 		if (select) {
 			/*

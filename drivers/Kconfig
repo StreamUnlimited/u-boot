@@ -140,4 +140,6 @@ config PHYS_TO_BUS
 	  your platform's Kconfig, and implement the appropriate mapping
 	  functions in your platform's support code.
 
+source "drivers/rtkdrivers/Kconfig"
+
 endmenu

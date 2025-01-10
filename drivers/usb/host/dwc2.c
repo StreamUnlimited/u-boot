@@ -23,6 +23,9 @@
 #include <linux/delay.h>
 #include <power/regulator.h>
 #include <reset.h>
+#ifdef CONFIG_USB_RTK_AMEBA_USB20PHY
+#include <realtek/usb_phy.h>
+#endif
 
 #include "dwc2.h"
 
@@ -247,6 +250,9 @@ static void dwc_otg_core_host_init(struct udevice *dev,
 	uint32_t ptxfifosize = 0;
 	uint32_t hprt0 = 0;
 	int i, ret, num_channels;
+#ifdef CONFIG_USB_RTK_AMEBA_USB20PHY
+	struct dwc2_priv *priv = dev_get_priv(dev);
+#endif
 
 	/* Restart the Phy Clock */
 	writel(0, &regs->pcgcctl);
@@ -308,6 +314,14 @@ static void dwc_otg_core_host_init(struct udevice *dev,
 		if (ret)
 			dev_info("%s: Timeout!\n", __func__);
 	}
+
+#ifdef CONFIG_USB_RTK_AMEBA_USB20PHY
+	ret = rtk_phy_calibrate(&priv->phy, (uintptr_t)regs);
+	if (ret) {
+		pr_err("[USBH] PHY calibration fail\n");
+		return ret;
+	}
+#endif
 
 	/* Turn on the vbus power. */
 	if (readl(&regs->gintsts) & DWC2_GINTSTS_CURMODE_HOST) {
@@ -1449,6 +1463,26 @@ static int dwc2_usb_remove(struct udevice *dev)
 	return 0;
 }
 
+#ifdef CONFIG_USB_RTK_AMEBA_USB20PHY
+int rtk_read_phy_reg(struct udevice *dev, u8 addr, u8 *val)
+{
+	struct dwc2_priv *priv = dev_get_priv(dev);
+	struct dwc2_core_regs *regs = priv->regs;
+	return rtk_phy_read(&priv->phy, (uintptr_t)regs, addr, val);
+}
+
+EXPORT_SYMBOL_GPL(rtk_read_phy_reg);
+
+int rtk_write_phy_reg(struct udevice *dev, u8 addr, u8 val)
+{
+	struct dwc2_priv *priv = dev_get_priv(dev);
+	struct dwc2_core_regs *regs = priv->regs;
+	return rtk_phy_write(&priv->phy, (uintptr_t)regs, addr, val);
+}
+
+EXPORT_SYMBOL_GPL(rtk_write_phy_reg);
+#endif
+
 struct dm_usb_ops dwc2_usb_ops = {
 	.control = dwc2_submit_control_msg,
 	.bulk = dwc2_submit_bulk_msg,
@@ -1456,6 +1490,7 @@ struct dm_usb_ops dwc2_usb_ops = {
 };
 
 static const struct udevice_id dwc2_usb_ids[] = {
+	{ .compatible = "realtek,dwc-otg" },
 	{ .compatible = "brcm,bcm2835-usb" },
 	{ .compatible = "brcm,bcm2708-usb" },
 	{ .compatible = "snps,dwc2" },

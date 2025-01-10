@@ -1,0 +1,6 @@
+
+config OTP_RTK_AMEBA
+	bool "OTP Driver"
+	select MISC
+	help
+		Support the OTP for Realtek Soc

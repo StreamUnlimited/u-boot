@@ -1,0 +1,7 @@
+
+config USB_RTK_AMEBA_USB20PHY
+	bool "USB PHY Driver"
+	depends on PHY
+	help
+		Support the USB20PHY for Realtek SoCs
+

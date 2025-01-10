@@ -177,6 +177,11 @@ SECTIONS
 		*(.__image_copy_end)
 	}
 
+	.rel.plt :
+	{
+		*(.rel.plt)
+	}
+
 	.rel_dyn_start :
 	{
 		*(.__rel_dyn_start)

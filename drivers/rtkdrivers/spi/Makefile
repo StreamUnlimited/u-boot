@@ -1,0 +1,1 @@
+obj-$(CONFIG_SPIC_RTK_AMEBA_RXI312) += spi_rxi312.o

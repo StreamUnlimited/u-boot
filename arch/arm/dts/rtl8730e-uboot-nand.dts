@@ -1,0 +1,105 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+* Realtek DTS for RTL8730E NAND flash chips
+*
+* Copyright (C) 2023, Realtek Corporation. All rights reserved.
+*/
+
+/dts-v1/;
+
+#include <dt-bindings/realtek/ameba_ipc/ameba_ipc_resource.h>
+
+/ {
+	model = "Ameba Platform";
+	compatible = "realtek,ameba";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	ocp {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		fsusb: fsusb@40080000 {
+			compatible = "realtek,dwc-fastboot";
+			reg = <0x40080000 0x20000>;
+			g-rx-fifo-size = <512>;
+			g-np-tx-fifo-size = <256>;
+			g-tx-fifo-size = <128 120>;
+			phys = <&usb_phy>;
+			phy-names = "usb2-phy";
+			dr_mode="peripheral";
+			status = "okay";
+			u-boot,force-b-session-valid;
+		};
+
+		loguart: dwapb@4200c000 {
+			compatible = "realtek,ameba-loguart";
+			reg = <0x4200c000 0x100>;
+			reg-shift = <2>;
+			reg-io-width = <1>;
+			clock-frequency = <40000000>;
+		};
+
+		otp: otp@0 {
+			compatible = "realtek,ameba-otp";
+			reg = <0x42000000 0x800>,
+				<0x42008000 0x1000>;
+		};
+
+		spic: spi@44000000 {
+			compatible = "realtek,rxi312";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			bus_num = <2>;
+			reg = <0x44000000 0x200>;
+			spi-deactivate-delay = <0>;
+
+			flash0: flash@0 {
+				compatible = "spi-nand";
+				reg = <0>;
+			};
+		};
+
+		usb: usb@40080000 {
+			compatible = "realtek,dwc-otg";
+			reg = <0x40080000 0x20000>;
+			g-rx-fifo-size = <512>;
+			g-np-tx-fifo-size = <256>;
+			g-tx-fifo-size = <128 120>;
+			phys = <&usb_phy 0>;
+			phy-names = "usb2-phy";
+			hnp-srp-disable;
+			status = "okay";
+		};
+
+		usb_phy: usb-phy@41000000 {
+			compatible = "realtek,ameba-otg-phy";
+			reg = <0x400B0000 0x20>,
+				<0x41000060 4>,
+				<0x42008000 0x400>;
+			rtk,cal-data = <0x00 0xE0 0x9D>,
+				<0x00 0xE1 0x19>,
+				<0x00 0xE2 0xDB>,
+				<0x00 0xE4 0x68>,
+				<0x01 0xE5 0x0A>,
+				<0x01 0xE6 0xD8>,
+				<0x02 0xE7 0x52>,
+				<0x01 0xE0 0x04>,
+				<0x01 0xE0 0x00>,
+				<0x01 0xE0 0x04>;
+			#phy-cells = <0>;
+			status = "okay";
+		};
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x60300000 0x3D00000>; // Only cover the DRAM used by uboot. DRAM for kernel can be larger.
+	};
+
+	chosen {
+		stdout-path = &loguart;
+	};
+};
