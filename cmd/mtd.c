@@ -18,6 +18,9 @@
 #include <linux/err.h>
 #include <linux/ctype.h>
 
+#define RTK_NAND_FLASH_BASE	0x08000000
+#define RTK_IMAGE_CERT_OFFSET	0x2000
+#define RTK_BOOTLOADER_RSIP_OR	0x42008D08
 #define MISC_OPTION_CMD_SIZE	32
 
 static struct mtd_info *get_mtd_by_name(const char *name)
@@ -558,7 +561,11 @@ static int do_mtd_verified_boot(int argc, char *const argv[])
 	struct mtd_info *mtd_pkhash;
 	u8 *buf;
 	u8 *cert_buf;
+	u32 cert_slot;
 	int ret = CMD_RET_SUCCESS;
+	unsigned long register_a_address = RTK_BOOTLOADER_RSIP_OR;
+	volatile unsigned long *ptr = (volatile unsigned long *)register_a_address;
+	unsigned long value = *ptr;
 	extern int realtek_linux_verified_boot(
 		unsigned long ddr_kernel_addr, unsigned long ddr_dtb_addr,
 		const u8* vbmeta_buf, u64 vbmeta_len,
@@ -577,7 +584,14 @@ static int do_mtd_verified_boot(int argc, char *const argv[])
 	}
 	mtd_read_to_buf(mtd, buf, len);
 
-	mtd_pkhash = get_mtd_by_name("cert-bin");
+	cert_slot = ((value >> 9) << 5) - RTK_IMAGE_CERT_OFFSET - RTK_NAND_FLASH_BASE;
+	mtd_pkhash = get_mtd_by_name("cert-bin-b");
+	if (mtd_pkhash->offset != cert_slot) {
+		/* When cert.bin is not in slot b, default use slot a. */
+		put_mtd_device(mtd_pkhash);
+		mtd_pkhash = get_mtd_by_name("cert-bin-a");
+	}
+
 	cert_buf_len = mtd_pkhash->size;
 	cert_buf = kmalloc(cert_buf_len, GFP_KERNEL);
 	if (!cert_buf) {
