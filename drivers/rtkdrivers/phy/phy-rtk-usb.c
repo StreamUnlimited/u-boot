@@ -17,6 +17,8 @@
 #include <dm/device_compat.h>
 #include <linux/bitops.h>
 #include <linux/delay.h>
+#include <dm/ofnode.h>
+#include <linux/libfdt.h>
 
 /* USB PHY registers */
 #define USB_OTG_PHY_REG_E0								0xE0U
@@ -122,20 +124,6 @@ struct rtk_usb_phy_cal_data_t {
 	u8 val;
 };
 
-static const struct rtk_usb_phy_cal_data_t rtk_usb_cal_data[] = {
-	{0x00, 0xE0, 0x9D},
-	{0x00, 0xE1, 0x19},
-	{0x00, 0xE2, 0xDB},
-	{0x00, 0xE4, 0x6B},
-	{0x01, 0xE5, 0x0A},
-	{0x01, 0xE6, 0xD8},
-	{0x02, 0xE7, 0x32},
-	{0x01, 0xE0, 0x04},
-	{0x01, 0xE0, 0x00},
-	{0x01, 0xE0, 0x04},
-
-	{0xFF, 0x00, 0x00}
-};
 
 static int rtk_load_vcontrol(struct phy *p, uintptr_t dwc, u8 addr)
 {
@@ -182,12 +170,7 @@ static int rtk_phy_read(struct phy *p, uintptr_t dwc, u8 addr, u8 *val)
 {
 	u32 pvndctl;
 	int ret = 0;
-	u8 addr_read;
-	if (addr >= 0xE0) {
-		addr_read = addr - 0x20;
-	} else {
-		addr_read = addr;
-	}
+	u8 addr_read = addr - 0x20;
 
 	ret = rtk_load_vcontrol(p, dwc, PHY_LOW_ADDR(addr_read));
 	if (ret == 0) {
@@ -227,33 +210,96 @@ static int rtk_phy_page_set(struct phy *p, uintptr_t dwc, u8 page)
 int rtk_phy_calibrate(struct phy *p, uintptr_t dwc)
 {
 	u8 ret = 0;
-	struct rtk_usb_phy_cal_data_t *data = (struct rtk_usb_phy_cal_data_t *)rtk_usb_cal_data;
+	struct rtk_usb_phy_cal_data_t *data = NULL;
+	struct rtk_usb_phy_cal_data_t *data_tmp = NULL;
+	u32 *cal_data = NULL;
+	u32 *cal_data_tmp = NULL;
 	u8 old_page = 0xFF;
+	ofnode node;
+	int prop_size = 0;
+	int num_entries = 0;
+	const int entry_size = 3;
+	int i = 0;
 
 	if (p == NULL) {
-		return -1;
+		return -EINVAL;
 	}
 
+	node = dev_ofnode(p->dev);
+	if (!ofnode_valid(node)) {
+		dev_err(p->dev, "Invalid device node.\n");
+		return -ENODEV;
+	}
+
+	ofnode_get_property(node, "rtk,cal-data", &prop_size);
+	prop_size = prop_size / sizeof(uint32_t);
+	if ((prop_size <= 0) || (prop_size % 3 != 0)) {
+		dev_err(p->dev, "Property 'rtk,cal-data' size %d is invalid or not meet the format\n", prop_size);
+		return -EINVAL;
+	}
+
+	cal_data = malloc(prop_size * sizeof(uint32_t));
+	if (!cal_data) {
+		dev_err(p->dev, "Failed to malloc cal_data\n");
+		ret = -ENOMEM;
+		goto cleanup;
+	}
+
+	num_entries = prop_size / entry_size;
+	data = malloc(num_entries * sizeof(struct rtk_usb_phy_cal_data_t));
+	if (!data){
+		dev_err(p->dev, "Failed to malloc data\n");
+		ret = -ENOMEM;
+		goto cleanup;
+	}
+
+	ret = ofnode_read_u32_array(node, "rtk,cal-data", cal_data, prop_size);
+	if (ret) {
+		dev_err(p->dev, "Failed to read 'rtk,cal-data'\n");
+		goto cleanup;
+	}
+
+	for (i = 0; i < num_entries; i++) {
+		data_tmp = data + i;
+		cal_data_tmp = cal_data + i * entry_size;
+		data_tmp->page = (u8)*(cal_data_tmp);
+		data_tmp->addr = (u8)*(cal_data_tmp + 1);
+		data_tmp->val = (u8)*(cal_data_tmp + 2);
+	}
+
+	free(cal_data);
 	/* 3ms + 2.5us from DD, 3ms already delayed after soft disconnect */
 	udelay(3);
 
-	while (data->page != 0xFF) {
-		if (data->page != old_page) {
-			ret = rtk_phy_page_set(p, dwc, data->page);
+	i = 0;
+	while (i < num_entries) {
+		data_tmp = data + i;
+		if (data_tmp->page != old_page) {
+			ret = rtk_phy_page_set(p, dwc, data_tmp->page);
 			if (ret != 0) {
 				dev_err(p->dev, "Fail to switch to page %d: %d\n", data->page, ret);
-				break;
+				goto cleanup;
 			}
 			old_page = data->page;
 		}
-		ret = rtk_phy_write(p, dwc, data->addr, data->val);
+		ret = rtk_phy_write(p, dwc, data_tmp->addr, data_tmp->val);
 		if (ret != 0) {
-			dev_err(p->dev, "Fail to write page %d register 0x%02X: %d\n", data->page, data->addr, ret);
-			break;
+			dev_err(p->dev, "Fail to write page %d register 0x%02X: %d\n", data_tmp->page, data_tmp->addr, ret);
+			goto cleanup;
 		}
-		data++;
+		i++;
 	}
 
+	free(data);
+	return ret;
+
+cleanup:
+	if(cal_data != NULL){
+		free(cal_data);
+	}
+	if(data != NULL){
+		free(data);
+	}
 	return ret;
 }
 
