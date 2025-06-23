@@ -1,8 +1,6 @@
 /*
  * Realtek Semiconductor Corp.
  *
- * Copyright 2012  Jethro Hsu (jethro@realtek.com)
- * Copyright 2012  Tony Wu (tonywu@realtek.com)
  */
 
 #ifndef _AMEBA_H_

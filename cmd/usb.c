@@ -715,6 +715,52 @@ static int do_usb(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 		i = simple_strtoul(argv[3], NULL, 10);
 		return usb_test(udev, i, argv[4]);
 	}
+#ifdef CONFIG_USB_RTK_AMEBA_USB20PHY
+	if (strncmp(argv[1], "phydw", 5) == 0) {
+		u8 address;
+		u8 value;
+		int ret;
+
+		if (argc != 3)
+			return CMD_RET_USAGE;
+
+		address = simple_strtoul(argv[2], NULL, 16);
+		udev = usb_find_device(0);
+		if (udev == NULL) {
+			printf("Root hub does not exist\n", i);
+			return 1;
+		}
+
+		ret = rtk_read_phy_reg(udev->controller_dev, address, &value);
+		if (ret == 0) {
+			printf("PHY R 0x%02x: 0x%02x\n", address, value);
+		}
+
+		return ret;
+	}
+	if (strncmp(argv[1], "phyew", 5) == 0) {
+		u8 address;
+		u8 value;
+		int ret;
+		if (argc != 4)
+			return CMD_RET_USAGE;
+
+		address = simple_strtoul(argv[2], NULL, 16);
+		value = simple_strtoul(argv[3], NULL, 16);
+		udev = usb_find_device(0);
+		if (udev == NULL) {
+			printf("Root hub does not exist\n");
+			return 1;
+		}
+
+		ret = rtk_write_phy_reg(udev->controller_dev, address, value);
+		if (ret == 0) {
+			printf("PHY W 0x%02x: 0x%02x\n", address, value);
+		}
+
+		return ret;
+	}
+#endif
 #ifdef CONFIG_USB_STORAGE
 	if (strncmp(argv[1], "stor", 4) == 0)
 		return usb_stor_info();
@@ -736,6 +782,10 @@ U_BOOT_CMD(
 	"usb test [dev] [port] [mode] - set USB 2.0 test mode\n"
 	"    (specify port 0 to indicate the device's upstream port)\n"
 	"    Available modes: J, K, S[E0_NAK], P[acket], F[orce_Enable]\n"
+#ifdef CONFIG_USB_RTK_AMEBA_USB20PHY
+	"usb phydw [address_hex] - read USB phy register\n"
+	"usb phyew [address_hex] [value_hex] - write USB phy register\n"
+#endif
 #ifdef CONFIG_USB_STORAGE
 	"usb storage - show details of USB storage devices\n"
 	"usb dev [dev] - show or set current USB storage device\n"

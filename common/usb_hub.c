@@ -375,9 +375,6 @@ int usb_hub_port_connect_change(struct usb_device *dev, int port)
 		return ret;
 	}
 
-	// Fix hub compatibility issue reported by XPERI, > 5ms is OK, 10 ms for safety
-	mdelay(10);
-
 	switch (portstatus & USB_PORT_STAT_SPEED_MASK) {
 	case USB_PORT_STAT_SUPER_SPEED:
 		speed = USB_SPEED_SUPER;

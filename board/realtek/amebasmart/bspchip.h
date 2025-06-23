@@ -4,8 +4,6 @@
  * bsp.h
  * Board Support Package header file
  *
- * Tony Wu (tonywu@realtek.com.tw)
- * Dec. 07, 2007
  */
 
 #ifndef  _BSPCHIP_H_

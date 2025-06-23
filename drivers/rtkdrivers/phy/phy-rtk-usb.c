@@ -124,7 +124,6 @@ struct rtk_usb_phy_cal_data_t {
 	u8 val;
 };
 
-
 static int rtk_load_vcontrol(struct phy *p, uintptr_t dwc, u8 addr)
 {
 	u32 pvndctl = 0x0A300000;
@@ -146,7 +145,7 @@ static int rtk_load_vcontrol(struct phy *p, uintptr_t dwc, u8 addr)
 	return 0;
 }
 
-static int rtk_phy_write(struct phy *p, uintptr_t dwc, u8 addr, u8 val)
+int rtk_phy_write(struct phy *p, uintptr_t dwc, u8 addr, u8 val)
 {
 	u32 tmp;
 	int ret = 0;
@@ -166,7 +165,9 @@ static int rtk_phy_write(struct phy *p, uintptr_t dwc, u8 addr, u8 val)
 	return ret;
 }
 
-static int rtk_phy_read(struct phy *p, uintptr_t dwc, u8 addr, u8 *val)
+EXPORT_SYMBOL_GPL(rtk_phy_write);
+
+int rtk_phy_read(struct phy *p, uintptr_t dwc, u8 addr, u8 *val)
 {
 	u32 pvndctl;
 	int ret = 0;
@@ -183,6 +184,8 @@ static int rtk_phy_read(struct phy *p, uintptr_t dwc, u8 addr, u8 *val)
 
 	return ret;
 }
+
+EXPORT_SYMBOL_GPL(rtk_phy_read);
 
 static int rtk_phy_page_set(struct phy *p, uintptr_t dwc, u8 page)
 {

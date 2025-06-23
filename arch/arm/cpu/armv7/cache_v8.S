@@ -6,7 +6,6 @@
  * cache flush and invalidate support
  * for ARMv8-A AArch32 mode
  *
- * Copyright 2014  Jethro Hsu (jethro@realtek.com)
  */
 
 #include <asm-offsets.h>
