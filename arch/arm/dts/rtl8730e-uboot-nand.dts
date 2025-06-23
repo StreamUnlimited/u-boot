@@ -70,6 +70,7 @@
 			g-tx-fifo-size = <128 120>;
 			phys = <&usb_phy 0>;
 			phy-names = "usb2-phy";
+			hnp-srp-disable;
 			status = "okay";
 		};
 

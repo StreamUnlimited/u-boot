@@ -1463,6 +1463,26 @@ static int dwc2_usb_remove(struct udevice *dev)
 	return 0;
 }
 
+#ifdef CONFIG_USB_RTK_AMEBA_USB20PHY
+int rtk_read_phy_reg(struct udevice *dev, u8 addr, u8 *val)
+{
+	struct dwc2_priv *priv = dev_get_priv(dev);
+	struct dwc2_core_regs *regs = priv->regs;
+	return rtk_phy_read(&priv->phy, (uintptr_t)regs, addr, val);
+}
+
+EXPORT_SYMBOL_GPL(rtk_read_phy_reg);
+
+int rtk_write_phy_reg(struct udevice *dev, u8 addr, u8 val)
+{
+	struct dwc2_priv *priv = dev_get_priv(dev);
+	struct dwc2_core_regs *regs = priv->regs;
+	return rtk_phy_write(&priv->phy, (uintptr_t)regs, addr, val);
+}
+
+EXPORT_SYMBOL_GPL(rtk_write_phy_reg);
+#endif
+
 struct dm_usb_ops dwc2_usb_ops = {
 	.control = dwc2_submit_control_msg,
 	.bulk = dwc2_submit_bulk_msg,
