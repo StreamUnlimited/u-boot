@@ -440,7 +440,7 @@ config MT7621_GPIO
 
 config RTK_AMEBA_GPIO
         bool "RTL8730E GPIO driver"
-	depends on DM_GPIO && (TARGET_RTL8730E || TARGET_STREAM210)
+	depends on DM_GPIO && (TARGET_AMEBASMART || TARGET_STREAM210)
         default y
 	help
 	  Say yes to have support for RTL8730E compatible GPIOs.

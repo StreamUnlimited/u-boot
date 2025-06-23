@@ -2,7 +2,7 @@
 # u-Boot
 #
 
-if TARGET_RTL8730E
+if TARGET_AMEBASMART
 
 config SYS_VENDOR
 	default "realtek"
