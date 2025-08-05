@@ -11,6 +11,10 @@
 
 #define FWUP_MAX_BOOT_CNT	9UL
 
+#define GPIO_IOCTL_REG_BASE 0x42008A00
+// PB18 = (32 + 18 = 0x32) and 4 bytes for one register
+#define GPIO_IOCTL_GPIO_PB18 GPIO_IOCTL_REG_BASE + (0x32 * 4)
+
 static int fwupdate_getUpdateFlag(bool *val)
 {
 	return flag_read(FWUP_FLAG_UPDATE_INDEX, val);
@@ -48,6 +52,18 @@ static int fwupdate_getUsbUpdateReq(void)
 
 	// gpio pb18 -> force usb update
 	const char *gpio_name = "PB18";
+
+	/*
+	 * Setup internal pullup for recovery/fwupdate pin.
+	 * Some S210 boards don't have external pullup and randomly enters to update mode
+	 *
+	 * As there is no pinctrl driver just setup register for PB18 directly
+	 */
+
+	// clean pulldown bit as we experienced that pulldown is enabled by default
+	// even datasheet says it should be set to 0 after reset
+	clrbits_le32(GPIO_IOCTL_GPIO_PB18, BIT(9));
+	setbits_le32(GPIO_IOCTL_GPIO_PB18, BIT(8));
 
 	ret = gpio_lookup_name(gpio_name, NULL, NULL, &gpio);
         if (ret) {
