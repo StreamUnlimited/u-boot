@@ -120,6 +120,13 @@
 	"bootcmd_mfg=fastboot 0; reset\0" \
 	"mfg_run=run kernel_common_args; setenv bootargs ${bootargs} rootfstype=ramfs loglevel=5; bootm ${fdt_addr}#default_factory@1\0" \
 	"setfitconfig=run load_const; run import_const; setenv fit_config ${module_config}_${carrierboard}\0" \
+	"pslc=" \
+		"mmc list; mmc dev 0; mmc info; " \
+		"if mmc hwpartition user enh 0 - wrrel on complete; then " \
+			"echo \"pslc [OK]\"; " \
+		"else " \
+			"echo \"pslc [ERROR]\"; " \
+		"fi\0" \
 	SUE_FWUPDATE_EXTRA_ENV_SETTINGS \
 	CONST_ENV_LOADING \
 	CONST_ENV_IMPORTING
