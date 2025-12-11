@@ -410,14 +410,37 @@ static int do_mtd_io(struct cmd_tbl *cmdtp, int flag, int argc,
 	/* Search for the first good block after the given offset */
 	off = start_off;
 	while (mtd_block_isbad(mtd, off)) {
+		printf("Bad block: failed to read at offset 0x%llx, skipping.\n", off);
 		off += mtd->erasesize;
 	}
 
 	/* Loop over the pages to do the actual read/write */
 	while (remaining) {
+		/*
+		 * Boundary Check: Bad block skipping may push the physical read offset
+		 * past the partition end (mtd->size).
+		 * If the read pointer 'off' has reached the end of the physical flash,
+		 * we physically cannot read more.
+		 *
+		 * Check 'argc' to see if the user explicitly requested a specific size.
+		 * * If argc < 2, the user did NOT specify a size (defaulted to partition size).
+		 *   In this case, we treat "end of flash" as a natural stopping point
+		 *   and truncate the read gracefully.
+		 * * If argc >= 2, the user explicitly asked for N bytes.
+		 *   In this case, we do NOT truncate. We let the loop continue, which
+		 *   will trigger the standard error (-22) because the request cannot be met.
+		 */
+		if (argc < 2 && off >= mtd->size) {
+			printf("Notice: Reached end of partition with %lld bytes remaining. Truncating read.\n", remaining);
+			remaining = 0;
+			ret = CMD_RET_SUCCESS;
+			break;
+		}
+
 		/* Skip the block if it is bad */
 		if (mtd_is_aligned_with_block_size(mtd, off) &&
 			mtd_block_isbad(mtd, off)) {
+			printf("Bad block: failed to read at offset 0x%llx, skipping.\n", off);
 			off += mtd->erasesize;
 			continue;
 		}
