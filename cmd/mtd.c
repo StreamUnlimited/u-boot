@@ -368,7 +368,17 @@ static int do_mtd_io(struct cmd_tbl *cmdtp, int flag, int argc,
 		goto out_put_mtd;
 	}
 
-	default_len = dump ? mtd->writesize : mtd->size;
+
+
+	if (dump) {
+		default_len = mtd->writesize;
+	} else {
+		if (start_off < mtd->size)
+			default_len = mtd->size - start_off;
+		else
+			default_len = 0;
+	}
+
 	len = argc > 1 ? simple_strtoul(argv[1], NULL, 16) : default_len;
 	if (!mtd_is_aligned_with_min_io_size(mtd, len)) {
 		len = round_up(len, mtd->writesize);
