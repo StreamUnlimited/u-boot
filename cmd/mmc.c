@@ -11,6 +11,43 @@
 #include <memalign.h>
 #include <mmc.h>
 
+static void mmc_print_ext_csd(struct mmc *mmc)
+{
+	const u8 *ext_csd = mmc->ext_csd;
+
+	if (!ext_csd) {
+		printf("EXT_CSD: not available\n");
+		return;
+	}
+
+	printf("PARTITION_CONFIG            : 0x%02x\n",
+		ext_csd[EXT_CSD_PART_CONF]);
+	printf("BOOT_BUS_CONDITIONS         : 0x%02x\n",
+		ext_csd[EXT_CSD_BOOT_BUS_WIDTH]);
+	printf("USER_WP                     : 0x%02x\n",
+		ext_csd[EXT_CSD_USER_WP]);
+	printf("RST_N_FUNCTION              : 0x%02x\n",
+		ext_csd[EXT_CSD_RST_N_FUNCTION]);
+	printf("PARTITIONS_ATTRIBUTE        : 0x%02x\n",
+		ext_csd[EXT_CSD_PARTITIONS_ATTRIBUTE]);
+	printf("WR_REL_SET                  : 0x%02x\n",
+		ext_csd[EXT_CSD_WR_REL_SET]);
+	printf("PARTITION_SETTING_COMPLETED : 0x%02x\n",
+		ext_csd[EXT_CSD_PARTITION_SETTING]);
+	printf("ENH_START_ADDR              : 0x%02x%02x%02x\n",
+		ext_csd[EXT_CSD_ENH_START_ADDR + 2],
+		ext_csd[EXT_CSD_ENH_START_ADDR + 1],
+		ext_csd[EXT_CSD_ENH_START_ADDR + 0]);
+	printf("MAX_ENH_SIZE_MULT           : 0x%02x%02x%02x\n",
+		ext_csd[EXT_CSD_MAX_ENH_SIZE_MULT + 2],
+		ext_csd[EXT_CSD_MAX_ENH_SIZE_MULT + 1],
+		ext_csd[EXT_CSD_MAX_ENH_SIZE_MULT + 0]);
+	printf("ENH_SIZE_MULT               : 0x%02x%02x%02x\n",
+		ext_csd[EXT_CSD_ENH_SIZE_MULT + 2],
+		ext_csd[EXT_CSD_ENH_SIZE_MULT + 1],
+		ext_csd[EXT_CSD_ENH_SIZE_MULT + 0]);
+}
+
 static int curr_device = -1;
 
 static void print_mmcinfo(struct mmc *mmc)
@@ -98,6 +135,8 @@ static void print_mmcinfo(struct mmc *mmc)
 					putc('\n');
 			}
 		}
+		/* Extra EXT_CSD debug info */
+		mmc_print_ext_csd(mmc);
 	}
 }
 static struct mmc *init_mmc_device(int dev, bool force_init)

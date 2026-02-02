@@ -232,6 +232,8 @@ static inline bool mmc_is_tuning_cmd(uint cmdidx)
 #define EXT_CSD_BOOT_MULT		226	/* RO */
 #define EXT_CSD_BKOPS_SUPPORT		502	/* RO */
 
+#define EXT_CSD_USER_WP                   171
+
 /*
  * EXT_CSD field definitions
  */
