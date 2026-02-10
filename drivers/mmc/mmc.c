@@ -1107,9 +1107,52 @@ int mmc_hwpart_config(struct mmc *mmc,
 	}
 
 	if (ext_csd[EXT_CSD_PARTITION_SETTING] &
-	    EXT_CSD_PARTITION_SETTING_COMPLETED) {
-		pr_err("Card already partitioned\n");
-		return -EPERM;
+		EXT_CSD_PARTITION_SETTING_COMPLETED) {
+
+		if (conf->user.wr_rel_change &&
+			conf->user.wr_rel_set !=
+			!!(ext_csd[EXT_CSD_WR_REL_SET] & EXT_CSD_WR_DATA_REL_USR)) {
+			pr_err("Card already partitioned - trying to set different write reliability than already configured!\n");
+			return -EPERM;
+		}
+
+		if (ext_csd[EXT_CSD_WR_REL_SET] & EXT_CSD_WR_DATA_REL_USR) {
+			if (ext_csd[EXT_CSD_ENH_START_ADDR + 0] ||
+				ext_csd[EXT_CSD_ENH_START_ADDR + 1] ||
+				ext_csd[EXT_CSD_ENH_START_ADDR + 2] ||
+				ext_csd[EXT_CSD_ENH_START_ADDR + 3] ||
+				ext_csd[EXT_CSD_ENH_SIZE_MULT + 0] != ext_csd[EXT_CSD_MAX_ENH_SIZE_MULT + 0] ||
+				ext_csd[EXT_CSD_ENH_SIZE_MULT + 1] != ext_csd[EXT_CSD_MAX_ENH_SIZE_MULT + 1] ||
+				ext_csd[EXT_CSD_ENH_SIZE_MULT + 2] != ext_csd[EXT_CSD_MAX_ENH_SIZE_MULT + 2] ) {
+				pr_err("Card already partitioned - trying to set enhancement differently than already configured!\n");
+				return -EPERM;
+			}
+		}
+
+		for (pidx = 0; pidx < 4; pidx++) {
+			if (!!conf->gp_part[pidx].enhanced !=
+					!!(ext_csd[EXT_CSD_PARTITIONS_ATTRIBUTE] & EXT_CSD_ENH_GP(pidx))) {
+				pr_err("Card already partitioned - GP enhanced attribute mismatch (pidx=%d)!\n", pidx);
+				return -EPERM;
+			}
+			if (conf->gp_part[pidx].wr_rel_change &&
+					conf->gp_part[pidx].wr_rel_set !=
+					!!(ext_csd[EXT_CSD_WR_REL_SET] & EXT_CSD_WR_DATA_REL_GP(pidx))) {
+				pr_err("Card already partitioned - GP write reliability mismatch (pidx=%d)!\n", pidx);
+				return -EPERM;
+			}
+			if (!!conf->gp_part[pidx].size != !!mmc->capacity_gp[pidx]) {
+				pr_err("Card already partitioned - GP existence mismatch (pidx=%d)!\n", pidx);
+				return -EPERM;
+			}
+			if ((conf->gp_part[pidx].size << 9) != mmc->capacity_gp[pidx]) {
+				pr_err("Card already partitioned - GP size mismatch (pidx=%d)!\n", pidx);
+				return -EPERM;
+			}
+		}
+
+		pr_err("Card already partitioned the way it was requested => return success\n");
+		return 0;
 	}
 
 	if (mode == MMC_HWPART_CONF_CHECK)
