@@ -106,8 +106,9 @@
  * constants partition into U-Boot environment. */
 #define ALLOWED_CONST_VARIABLES "carrierboard"
 
-/* The environment (const partition) written by fw_printenv is in binary mode */
-#define CONST_ENV_IMPORTING "import_const=env import -b ${loadaddr} - " ALLOWED_CONST_VARIABLES "\0"
+/* The environment (const partition) written by fw_printenv is in binary mode, starting with a CRC checksum */
+#define CONST_ENV_IMPORTING "import_const=setexpr mmc_const_size_bytes ${mmc_const_size} * 0x200; " \
+	"env import -c ${loadaddr} ${mmc_const_size_bytes} - " ALLOWED_CONST_VARIABLES "\0"
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"fdt_addr=0x43800000\0"			\
