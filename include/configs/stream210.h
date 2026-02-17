@@ -29,8 +29,8 @@
  * constants partition into U-Boot environment. */
 #define ALLOWED_CONST_VARIABLES "carrierboard"
 
-/* The environment (const partition) written by fw_printenv is in binary mode */
-#define CONST_ENV_IMPORTING "import_const=env import -b ${loadaddr} - " ALLOWED_CONST_VARIABLES "\0"
+/* The environment (const partition) written by fw_printenv is in binary mode, starting with a CRC checksum */
+#define CONST_ENV_IMPORTING "import_const=env import -c ${loadaddr} 0x40000 - " ALLOWED_CONST_VARIABLES "\0"
 
 #define CONFIG_EXTRA_ENV_SETTINGS					\
 	"fastbootaddr="__stringify(CONFIG_FASTBOOT_BUF_ADDR)"\0"	\
