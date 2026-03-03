@@ -83,11 +83,6 @@
 #endif
 
 /* Initial environment variables */
-#ifdef CONFIG_TARGET_STREAM195X_NAND
-#define PARTITIONS "mtdparts_arg=" CONFIG_MTDPARTS_DEFAULT
-#define SUE_FWUPDATE_EXTRA_ENV_SETTINGS SUE_NAND_FWUPDATE_EXTRA_ENV_SETTINGS
-#define CONST_ENV_LOADING "load_const=nand read ${loadaddr} constants\0"
-#else
 #define PARTITIONS \
 	"blkdevparts=mmcblk2:512K(u-boot-env),512K(const),48M(swufit),20M(fit),128M(settings),827M(rootfs),-(other)"
 #define SUE_FWUPDATE_EXTRA_ENV_SETTINGS SUE_MMC_FWUPDATE_EXTRA_ENV_SETTINGS
@@ -100,7 +95,6 @@
 	"load_const=" \
 		"mmc dev " __stringify(CONFIG_SYS_MMC_ENV_DEV) "; " \
 		"mmc read ${loadaddr} ${mmc_const_offset} ${mmc_const_size}\0"
-#endif
 
 /* Space separated list of variables that can be **safely** imported from the
  * constants partition into U-Boot environment. */

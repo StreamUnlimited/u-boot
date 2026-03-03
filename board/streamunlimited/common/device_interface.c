@@ -15,11 +15,7 @@
  */
 static const char *module_names[] = {
 	"unknown",
-#ifdef CONFIG_TARGET_STREAM195X_NAND
-	"stream195x NAND/DDR3",
-#else
 	"stream195x eMMC/DDR4",
-#endif
 };
 
 /*
@@ -28,11 +24,7 @@ static const char *module_names[] = {
  */
 static const char *canonical_module_names[] = {
 	"unknown",
-#ifdef CONFIG_TARGET_STREAM195X_NAND
-	"stream195xnand",
-#else
 	"stream195x",
-#endif
 };
 
 struct module_map_entry {
@@ -70,18 +62,6 @@ static int fill_device_info(struct sue_device_info *device, u16 module_code)
  * These GPIOs are used as the bits for a module code, the first entry
  * represents LSB.
  */
-#if defined(CONFIG_TARGET_STREAM195X_NAND)
-static const unsigned int s195x_module_code_gpios[] = {
-	IMX_GPIO_NR(3, 3),
-	IMX_GPIO_NR(3, 4),
-};
-
-static iomux_v3_cfg_t const s195x_module_code_pads[] = {
-	IMX8MM_PAD_NAND_CE1_B_GPIO3_IO2 | MUX_PAD_CTRL(NO_PAD_CTRL),
-	IMX8MM_PAD_NAND_CE2_B_GPIO3_IO3 | MUX_PAD_CTRL(NO_PAD_CTRL),
-	IMX8MM_PAD_NAND_CE3_B_GPIO3_IO4 | MUX_PAD_CTRL(NO_PAD_CTRL),
-};
-#elif defined(CONFIG_TARGET_STREAM195X_EMMC)
 static const unsigned int s195x_module_code_gpios[] = {
 	IMX_GPIO_NR(3, 7),
 	IMX_GPIO_NR(3, 8),
@@ -92,7 +72,7 @@ static iomux_v3_cfg_t const s195x_module_code_pads[] = {
 	IMX8MM_PAD_NAND_DATA01_GPIO3_IO7 | MUX_PAD_CTRL(NO_PAD_CTRL),
 	IMX8MM_PAD_NAND_DATA02_GPIO3_IO8 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
-#endif
+
 int sue_device_detect(struct sue_device_info *device)
 {
 	int ret, i;

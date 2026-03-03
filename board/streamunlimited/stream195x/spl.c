@@ -113,17 +113,11 @@ static iomux_v3_cfg_t const gpmi_pads[] = {
 };
 #endif
 
-#ifdef CONFIG_TARGET_STREAM195X_NAND
-#define MODULE_ID0_GPIO IMX_GPIO_NR(3, 2)
-static iomux_v3_cfg_t const module_id0_pads[] = {
-	IMX8MM_PAD_NAND_CE1_B_GPIO3_IO2 | MUX_PAD_CTRL(NO_PAD_CTRL),
-};
-#else
+
 #define MODULE_ID0_GPIO IMX_GPIO_NR(3, 6)
 static iomux_v3_cfg_t const module_id0_pads[] = {
 	IMX8MM_PAD_NAND_DATA00_GPIO3_IO6 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
-#endif
 
 extern struct dram_timing_info ddr3l_1x4Gb_dram_timing;
 extern struct dram_timing_info ddr3l_2x2Gb_dram_timing;
@@ -136,15 +130,6 @@ void spl_dram_init(void)
 	gpio_request(MODULE_ID0_GPIO, "module_id0");
 	gpio_direction_input(MODULE_ID0_GPIO);
 
-#ifdef CONFIG_TARGET_STREAM195X_NAND
-	if (gpio_get_value(MODULE_ID0_GPIO)) {
-		printf("calling ddr_init() with ddr3l_1x4Gb_dram_timing\n");
-		ddr_init(&ddr3l_1x4Gb_dram_timing);
-	} else {
-		printf("calling ddr_init() with ddr3l_2x2Gb_dram_timing\n");
-		ddr_init(&ddr3l_2x2Gb_dram_timing);
-	}
-#else
 	if (gpio_get_value(MODULE_ID0_GPIO)) {
 		printf("calling ddr_init() with ddr4_1x8Gb_timing\n");
 		ddr_init(&ddr4_1x8Gb_timing);
@@ -152,7 +137,6 @@ void spl_dram_init(void)
 		printf("calling ddr_init() with ddr4_1x4Gb_timing\n");
 		ddr_init(&ddr4_1x4Gb_timing);
 	}
-#endif
 }
 
 void spl_board_init(void)
@@ -183,9 +167,6 @@ int board_usb_phy_mode(int port)
 
 void board_boot_order(u32 *spl_boot_list)
 {
-#ifdef CONFIG_TARGET_STREAM195X_NAND
-	spl_boot_list[0] = spl_boot_device();
-#else
 	/*
 	 * The device returned by spl_boot_device() is correct only if usdhc2
 	 * (SD card reader) is probed. In that case, usdhc2 is mmc dev0 and
@@ -199,7 +180,6 @@ void board_boot_order(u32 *spl_boot_list)
 	} else {
 		spl_boot_list[0] = bootdev;
 	}
-#endif
 }
 
 void board_init_f(ulong dummy)

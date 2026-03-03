@@ -225,67 +225,6 @@
            "echo \"INFO: Board is in factory state.\"; " \
        "fi;\0" \
 
-
-#define SUE_NAND_FWUPDATE_EXTRA_ENV_SETTINGS \
-    SUE_COMMON_FWUPDATE_EXTRA_ENV_SETTINGS \
-\
-    "readfituImage=" \
-        "if nand read ${fdt_addr} fit; " \
-            "then " \
-            "echo \"INFO: kernel partition load successful\"; " \
-        "else " \
-            "echo \"ERROR: cannot load kernel image from nand\"; " \
-            "reset; " \
-        "fi;\0" \
-\
-    "readswufituImage=" \
-        "if nand read ${fdt_addr} swufit; " \
-            "then " \
-            "echo \"INFO: swupdate kernel partition load successful\"; " \
-        "else " \
-            "echo \"ERROR: cannot load swupdate kernel image from nand\"; " \
-            "reset; " \
-        "fi;\0" \
-\
-    "kernel_common_args=setenv bootargs console=${console} panic=1 ${wdtargs} ${mtdparts_arg} ${optargs}; " \
-        /*"fec.macaddr=${eth_int_addr} ${mtdparts}; " */ \
-        "if test \"${secure_board}\" = 1; " \
-            "then " \
-            "echo \"INFO: board is locked, booting to runlevel 3\"; " \
-            "setenv bootargs ${bootargs} 3; " \
-        "fi;\0" \
-\
-    "nandroot=ubi0:nsdk-rootfs rw\0" \
-    "nandrootfstype=ubifs\0" \
-    "flashargs=run kernel_common_args; " \
-        "setenv bootargs ${bootargs} " \
-        "ubi.mtd=7 root=${nandroot} rootwait noinitrd " \
-        "rootfstype=${nandrootfstype};\0" \
-\
-    "check_factory_state=" \
-       "echo \"INFO: Checking if fit and u-boot-env partitions are empty.\"; " \
-       "setenv target_addr ${loadaddr}; " \
-       "setenv factory_state 1; " \
-       "mw ${loadaddr} 0xffffffff; " \
-       "setexpr target_addr ${target_addr} + 4; " \
-       "setexpr target_addr ${target_addr} + 4; " \
-       "for part in fit u-boot-env; " \
-           "do; " \
-           "nand read ${target_addr} $part 4; " \
-           "cmp.l ${loadaddr} ${target_addr} 1; " \
-               "if test $? -eq 1; " \
-                   "then; " \
-                   "setenv factory_state 0; " \
-                   "echo \"INFO: partition $part is not empty.\"; " \
-               "fi; " \
-       "done; " \
-       "if test ${factory_state} -eq 0; " \
-           "then " \
-           "echo \"INFO: Board is NOT in factory state.\"; " \
-       "else " \
-           "echo \"INFO: Board is in factory state.\"; " \
-       "fi;\0" \
-
 #define SUE_FWUPDATE_BOOTCOMMAND \
         "echo \"INFO: attempting SWU boot...\"; " \
         "fwup flags; "\
