@@ -11,6 +11,7 @@
 enum sue_module {
 	SUE_MODULE_UNKNOWN,
 	SUE_MODULE_S195X,
+	SUE_MODULE_S197X,
 };
 
 enum sue_reset_cause {

@@ -16,6 +16,7 @@
 static const char *module_names[] = {
 	"unknown",
 	"stream195x eMMC/DDR4",
+	"stream197x eMMC/DDR4",
 };
 
 /*
@@ -25,6 +26,7 @@ static const char *module_names[] = {
 static const char *canonical_module_names[] = {
 	"unknown",
 	"stream195x",
+	"stream195x", // Keep it the same as for 195x for now so DTS is loaded right
 };
 
 struct module_map_entry {
@@ -34,9 +36,10 @@ struct module_map_entry {
 };
 
 static const struct module_map_entry module_map[] = {
-	{ SUE_MODULE_S195X, 0, 0x00 }, // M/Q/P/N/O
-	{ SUE_MODULE_S195X, 0, 0x01 }, // I/J/K
-	{ SUE_MODULE_S195X, 0, 0x03 }, // IE/KE
+	{ SUE_MODULE_S195X, 0, 0x00 }, // 1955 M/Q/P/N/O
+	{ SUE_MODULE_S195X, 0, 0x01 }, // 1955 I/J/K
+	{ SUE_MODULE_S197X, 0, 0x02 }, // 1977 I/K
+	{ SUE_MODULE_S195X, 0, 0x03 }, // 1955 IE/KE
 };
 
 extern struct sue_carrier_ops generic_board_ops;
