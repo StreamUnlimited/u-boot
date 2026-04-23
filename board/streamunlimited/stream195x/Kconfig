@@ -17,6 +17,11 @@ config TARGET_STREAM195X_STREAMKIT
 
 endchoice
 
+config SUE_FACTORY_IMAGE
+	bool "Enable Factory Image modifications"
+	help
+		Enable this to include factory-specific u-boot modifications.
+
 
 source "board/streamunlimited/common/Kconfig"
 source "board/streamunlimited/fsl_common/Kconfig"

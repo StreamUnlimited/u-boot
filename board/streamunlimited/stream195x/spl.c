@@ -222,7 +222,20 @@ void board_init_f(ulong dummy)
 		i2c_write(0x36, 0x12, 1, &val, 1);
 	}
 	mdelay(10);
-#endif
+#ifndef CONFIG_SUE_FACTORY_IMAGE
+	{
+		/*
+		 * Increase output voltage of DCDC5 of AXP15060 by 40mV.
+		 * This helps increase the margin for some RAM chips.
+		 * Only do this when we are NOT in the factory so low quality RAMs
+		 * fail the factory tests.
+		 */
+		uint8_t val = 0xa6;
+		i2c_write(0x36, 0x17, 1, &val, 1);
+	}
+	mdelay(10);
+#endif /* CONFIG_SUE_FACTORY_IMAGE */
+#endif /* CONFIG_TARGET_STREAM195X_EMMC */
 
 	/* DDR initialization */
 	spl_dram_init();
