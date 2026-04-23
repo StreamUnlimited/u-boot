@@ -12,6 +12,8 @@
 #define CONFIG_TIMESTAMP				/* Print image info with timestamp */
 #undef  CONFIG_BOOTARGS
 
+#define CONFIG_SYS_BOOTM_LEN            0xF00000
+
 #define CONFIG_EXTRA_ENV_SETTINGS					\
 	"addmisc=setenv bootargs ${bootargs} "				\
 		"console=ttyS0,${baudrate} "				\

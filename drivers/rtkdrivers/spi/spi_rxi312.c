@@ -129,6 +129,12 @@ static int select_op(struct udevice *udev, spic_mode *mode, uint8_t cmd)
 		mode->tmod = 0;
 		break;
 
+	case FLASH_CMD_FAST_READ_4BADDR:
+		mode->addr_ch = 0;
+		mode->data_ch = 0;
+		mode->tmod = 3;
+		break;
+
 	default:
 		dev_warn(udev, "WARNING: Unsupported NOR flash cmd: 0x%02X\n", cmd);
 		ret = -1;

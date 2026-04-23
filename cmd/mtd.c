@@ -17,11 +17,13 @@
 #include <dm/devres.h>
 #include <linux/err.h>
 #include <linux/ctype.h>
+#include <env.h>
 
 #define RTK_NAND_FLASH_BASE	0x08000000
 #define RTK_IMAGE_CERT_OFFSET	0x2000
 #define RTK_BOOTLOADER_RSIP_OR	0x42008D08
-#define MISC_OPTION_CMD_SIZE	32
+
+#define MISC_OPTION_CMD_SIZE	8 // max:(recovery, normal)
 
 static struct mtd_info *get_mtd_by_name(const char *name)
 {
@@ -651,34 +653,19 @@ static int do_mtd_io_option(
 	char *const argv[])
 {
 	u64 len;
-	struct mtd_info *mtd;
-	u8 *buf;
 	int ret = CMD_RET_SUCCESS;
-	u8 cmd_misc[32];
-	char opt[32] = "boot-recovery";
+	char opt[8] = "recovery";
 	char *argv_read[5] = {"read", "0xFFFFFFFF", "0xFFFFFFFF", "0xFFFFFFFF", "0xFFFFFFFF"};
+	const char *value;
 
 	if (argc < 6) {
 		return CMD_RET_USAGE;
 	}
 
-	mtd = get_mtd_by_name("misc");
-	if (IS_ERR_OR_NULL(mtd)) {
-		return CMD_RET_FAILURE;
-	}
-	len = mtd->size ? mtd->size : MISC_OPTION_CMD_SIZE;
+	env_load();
+	value = env_get("entry");
 
-	buf = kmalloc(len, GFP_KERNEL);
-	if (!buf) {
-		printf("Could not map/allocate the user buffer\n");
-		ret = CMD_RET_FAILURE;
-		goto out_put_mtd;
-	}
-
-	mtd_read_to_buf(mtd, buf, len);
-	memcpy(cmd_misc, buf, MISC_OPTION_CMD_SIZE);
-
-	if (memcmp(cmd_misc, opt, MISC_OPTION_CMD_SIZE) == 0) {
+	if (value && (memcmp(value, opt, MISC_OPTION_CMD_SIZE) == 0)) {
 		/* Boot Recovery. */
 		printf("Prepare to boot recovery image now.\n");
 		argv_read[1] = "r-uImage";	// MTD name.
@@ -732,9 +719,6 @@ static int do_mtd_io_option(
 #endif // IS_ENABLED(CONFIG_VERIFIED_BOOT)
 	}
 
-	kfree(buf);
-out_put_mtd:
-	put_mtd_device(mtd);
 	return ret;
 }
 

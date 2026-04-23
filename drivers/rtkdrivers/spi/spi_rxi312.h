@@ -49,6 +49,8 @@
 #define FLASH_CMD_EXTNADDR_WREAR	0xC5 /* Write extended address register */
 #define FLASH_CMD_EXTNADDR_RDEAR	0xC8 /* Read extended address register */
 
+#define FLASH_CMD_FAST_READ_4BADDR	0x0C
+
 /*
  * NAND Flash opcodes
  */
