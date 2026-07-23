@@ -8,15 +8,26 @@
 #include <common.h>
 #include <asm/gpio.h>
 #include <asm/arch/imx8mm_pins.h>
+#include <fuse.h>
 #include "device_interface.h"
 
 /*
  * These names are more human friendly and can be used for printing.
  */
 static const char *module_names[] = {
-	"unknown",
-	"stream195x eMMC/DDR4",
-	"stream197x eMMC/DDR4",
+	[SUE_MODULE_UNKNOWN]	=	"unknown",
+	[SUE_MODULE_S1955M]		=	"stream1955M eMMC/DDR4 4GB",
+	[SUE_MODULE_S1955Q]		=	"stream1955Q eMMC/DDR4 8GB",
+	[SUE_MODULE_S1955I]		=	"stream1955I eMMC/DDR4 8GB",
+	[SUE_MODULE_S1955P]		=	"stream1955P eMMC/DDR4 4GB",
+	[SUE_MODULE_S1955N]		=	"stream1955N eMMC/DDR4 8GB",
+	[SUE_MODULE_S1955J]		=	"stream1955J eMMC/DDR4 4GB",
+	[SUE_MODULE_S1955K]		=	"stream1955K eMMC/DDR4 8GB",
+	[SUE_MODULE_S1955O]		=	"stream1955O eMMC/DDR4 8GB",
+	[SUE_MODULE_S1955IE]	=	"stream1955IE eMMC/DDR4 8GB",
+	[SUE_MODULE_S1955KE]	=	"stream1955KE eMMC/DDR4 8GB",
+	[SUE_MODULE_S1977IE]	=	"stream1977IE eMMC/DDR4 8GB",
+	[SUE_MODULE_S1977KE]	=	"stream1977KE eMMC/DDR4 8GB",
 };
 
 /*
@@ -24,41 +35,64 @@ static const char *module_names[] = {
  * e.g. for fit configurations.
  */
 static const char *canonical_module_names[] = {
-	"unknown",
-	"stream195x",
-	"stream195x", // Keep it the same as for 195x for now so DTS is loaded right
+	[SUE_MODULE_UNKNOWN]	=	"unknown",
+	[SUE_MODULE_S1955M]		=	"stream195x",
+	[SUE_MODULE_S1955Q]		=	"stream195x",
+	[SUE_MODULE_S1955I]		=	"stream195x",
+	[SUE_MODULE_S1955P]		=	"stream195x",
+	[SUE_MODULE_S1955N]		=	"stream195x",
+	[SUE_MODULE_S1955J]		=	"stream195x",
+	[SUE_MODULE_S1955K]		=	"stream195x",
+	[SUE_MODULE_S1955O]		=	"stream195x",
+	[SUE_MODULE_S1955IE]	=	"stream195x",
+	[SUE_MODULE_S1955KE]	=	"stream195x",
+	[SUE_MODULE_S1977IE]	=	"stream195x",	// Keep it the same as for 195x for now so DTS is loaded right
+	[SUE_MODULE_S1977KE]	=	"stream195x",	// Keep it the same as for 195x for now so DTS is loaded right
 };
 
 struct module_map_entry {
 	enum sue_module module;
 	u8 module_version;
 	u16 module_code;
+	enum sue_audio_3d_soc_version audio_3d_version;
 };
 
 static const struct module_map_entry module_map[] = {
-	{ SUE_MODULE_S195X, 0, 0x00 }, // 1955 M/Q/P/N/O
-	{ SUE_MODULE_S195X, 0, 0x01 }, // 1955 I/J/K
-	{ SUE_MODULE_S197X, 0, 0x02 }, // 1977 I/K
-	{ SUE_MODULE_S195X, 0, 0x03 }, // 1955 IE/KE
+	{ SUE_MODULE_S1955M,	0,	0b000,	AUDIO_3D_SOC_VERSION_A },
+	{ SUE_MODULE_S1955Q,	0,	0b100,	AUDIO_3D_SOC_VERSION_A },
+	{ SUE_MODULE_S1955I,	0,	0b110,	AUDIO_3D_SOC_VERSION_A },
+	{ SUE_MODULE_S1955P,	0,	0b000,	AUDIO_3D_SOC_VERSION_D },
+	{ SUE_MODULE_S1955N,	0,	0b100,	AUDIO_3D_SOC_VERSION_D },
+	{ SUE_MODULE_S1955J,	0,	0b010,	AUDIO_3D_SOC_VERSION_D },
+	{ SUE_MODULE_S1955K,	0,	0b110,	AUDIO_3D_SOC_VERSION_D },
+	{ SUE_MODULE_S1955O,	0,	0b100,	AUDIO_3D_SOC_VERSION_C },
+	{ SUE_MODULE_S1955IE,	0,	0b111,	AUDIO_3D_SOC_VERSION_A },
+	{ SUE_MODULE_S1955KE,	0,	0b111,	AUDIO_3D_SOC_VERSION_D },
+	{ SUE_MODULE_S1977IE,	0,	0b101,	AUDIO_3D_SOC_VERSION_A },
+	{ SUE_MODULE_S1977KE,	0,	0b101,	AUDIO_3D_SOC_VERSION_D },
 };
 
 extern struct sue_carrier_ops generic_board_ops;
 
-static int fill_device_info(struct sue_device_info *device, u16 module_code)
+static int fill_device_info(struct sue_device_info *device, u16 module_code, enum sue_audio_3d_soc_version audio_3d_version)
 {
 	int i;
 
+	device->module = SUE_MODULE_UNKNOWN;
 	device->module_code = module_code;
+	device->module_version = 0;
 
 	for (i = 0; i < ARRAY_SIZE(module_map); i++) {
-		if (module_map[i].module_code == module_code) {
+		if (module_map[i].module_code == module_code && module_map[i].audio_3d_version == audio_3d_version) {
 			device->module = module_map[i].module;
 			device->module_version = module_map[i].module_version;
-			break;
+			return 0;
 		}
 	}
 
-	return 0;
+	printf("ERROR: Unable to fill device info! No match for module code: 0x%x, audio_3d_version: 0x%x\n", module_code, audio_3d_version);
+
+	return -ENOENT;
 }
 
 /*
@@ -66,8 +100,9 @@ static int fill_device_info(struct sue_device_info *device, u16 module_code)
  * represents LSB.
  */
 static const unsigned int s195x_module_code_gpios[] = {
-	IMX_GPIO_NR(3, 7),
 	IMX_GPIO_NR(3, 8),
+	IMX_GPIO_NR(3, 7),
+	IMX_GPIO_NR(3, 6),
 };
 
 static iomux_v3_cfg_t const s195x_module_code_pads[] = {
@@ -80,6 +115,8 @@ int sue_device_detect(struct sue_device_info *device)
 {
 	int ret, i;
 	u16 module_code = 0;
+	u32 audio_3d_version_fuse = 0;
+	enum sue_audio_3d_soc_version audio_3d_version;
 
 	/*
 	 * Read GPIOs to form module code
@@ -96,7 +133,31 @@ int sue_device_detect(struct sue_device_info *device)
 		gpio_free(s195x_module_code_gpios[i]);
 	}
 
-	ret = fill_device_info(device, module_code);
+	/*
+	 * Read 3D Audio fuse to form Audio 3D version
+	 */
+	ret = fuse_read(1, 2, &audio_3d_version_fuse);
+	if (ret) {
+		printf("ERROR: Unable to read 3D Audio fuse configuration\n");
+		return -EIO;
+	}
+
+	audio_3d_version_fuse &= AUDIO_3D_FUSE_MASK;
+
+	switch (audio_3d_version_fuse)
+	{
+	case AUDIO_3D_SOC_VERSION_A:
+	case AUDIO_3D_SOC_VERSION_D:
+	case AUDIO_3D_SOC_VERSION_C:
+		audio_3d_version = (enum sue_audio_3d_soc_version) audio_3d_version_fuse;
+		break;
+	default:
+		printf("WARNING: Unknown 3D Audio fuse configuration (0x%X), defaulting to VERSION_A\n", audio_3d_version_fuse);
+		audio_3d_version = AUDIO_3D_SOC_VERSION_A;
+		break;
+	}
+
+	ret = fill_device_info(device, module_code, audio_3d_version);
 
 	return ret;
 }
