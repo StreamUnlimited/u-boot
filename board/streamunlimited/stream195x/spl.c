@@ -26,6 +26,7 @@
 #include <usb.h>
 
 #include "spl_anti_rollback.h"
+#include "../common/device_interface.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -113,27 +114,53 @@ static iomux_v3_cfg_t const gpmi_pads[] = {
 };
 #endif
 
-
-#define MODULE_ID0_GPIO IMX_GPIO_NR(3, 6)
-static iomux_v3_cfg_t const module_id0_pads[] = {
-	IMX8MM_PAD_NAND_DATA00_GPIO3_IO6 | MUX_PAD_CTRL(NO_PAD_CTRL),
-};
-
 extern struct dram_timing_info ddr4_1x4Gb_timing;
 extern struct dram_timing_info ddr4_1x8Gb_timing;
+extern struct dram_timing_info ddr4_1x8Gb_timing_v22;
+
+struct module_ddr_entry {
+	enum sue_module module;
+	struct dram_timing_info* ddr_timing;
+};
+static const struct module_ddr_entry module_map[] = {
+	{ SUE_MODULE_S1955M,	&ddr4_1x4Gb_timing},
+	{ SUE_MODULE_S1955Q,	&ddr4_1x8Gb_timing},
+	{ SUE_MODULE_S1955I,	&ddr4_1x8Gb_timing},
+	{ SUE_MODULE_S1955P,	&ddr4_1x4Gb_timing},
+	{ SUE_MODULE_S1955N,	&ddr4_1x8Gb_timing},
+	{ SUE_MODULE_S1955J,	&ddr4_1x4Gb_timing},
+	{ SUE_MODULE_S1955K,	&ddr4_1x8Gb_timing},
+	{ SUE_MODULE_S1955O,	&ddr4_1x8Gb_timing},
+	{ SUE_MODULE_S1955IE,	&ddr4_1x8Gb_timing},
+	{ SUE_MODULE_S1955KE,	&ddr4_1x8Gb_timing},
+	{ SUE_MODULE_S1977IE,	&ddr4_1x8Gb_timing_v22},
+	{ SUE_MODULE_S1977KE,	&ddr4_1x8Gb_timing_v22},
+};
 
 void spl_dram_init(void)
 {
-	imx_iomux_v3_setup_multiple_pads(module_id0_pads, ARRAY_SIZE(module_id0_pads));
-	gpio_request(MODULE_ID0_GPIO, "module_id0");
-	gpio_direction_input(MODULE_ID0_GPIO);
+	struct sue_device_info device;
+	bool found = false;
+	int i, ret;
 
-	if (gpio_get_value(MODULE_ID0_GPIO)) {
-		printf("calling ddr_init() with ddr4_1x8Gb_timing\n");
-		ddr_init(&ddr4_1x8Gb_timing);
-	} else {
-		printf("calling ddr_init() with ddr4_1x4Gb_timing\n");
-		ddr_init(&ddr4_1x4Gb_timing);
+	ret = sue_device_detect(&device);
+	if (ret < 0 || device.module == SUE_MODULE_UNKNOWN) {
+		printf("FATAL: Unknown device detected, aborting!\n");
+		hang();
+	}
+
+	for (i = 0; i < ARRAY_SIZE(module_map); i++) {
+		if (module_map[i].module == device.module) {
+			printf("calling ddr_init()\n");
+			ddr_init(module_map[i].ddr_timing);
+			found = true;
+			break;
+		}
+	}
+
+	if (!found) {
+		printf("FATAL: No DDR timing mapping found for module %d\n", device.module);
+		hang();
 	}
 }
 
