@@ -119,8 +119,6 @@ static iomux_v3_cfg_t const module_id0_pads[] = {
 	IMX8MM_PAD_NAND_DATA00_GPIO3_IO6 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 
-extern struct dram_timing_info ddr3l_1x4Gb_dram_timing;
-extern struct dram_timing_info ddr3l_2x2Gb_dram_timing;
 extern struct dram_timing_info ddr4_1x4Gb_timing;
 extern struct dram_timing_info ddr4_1x8Gb_timing;
 
