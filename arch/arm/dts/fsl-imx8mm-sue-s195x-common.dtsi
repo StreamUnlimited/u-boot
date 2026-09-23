@@ -51,6 +51,7 @@
 		pinctrl_wifi_reg: wifireggrp {
 			fsl,pins = <
 				MX8MM_IOMUXC_SD1_DATA6_GPIO2_IO8	(PAD_CTL_PE_UP | PAD_CTL_HYS)
+				MX8MM_IOMUXC_SD1_RESET_B_GPIO2_IO10	(PAD_CTL_PE_UP | PAD_CTL_HYS)
 			>;
 		};
 	};
