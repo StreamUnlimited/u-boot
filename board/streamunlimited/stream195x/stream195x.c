@@ -320,6 +320,7 @@ int power_init_board(void)
 }
 
 #define WIFI_REG_EN_GPIO IMX_GPIO_NR(2, 8)
+#define BT_REG_EN_GPIO IMX_GPIO_NR(2, 10)
 
 int board_init(void)
 {
@@ -339,8 +340,11 @@ int board_init(void)
 	 */
 	gpio_request(WIFI_REG_EN_GPIO, "wifi_reg_on");
 	gpio_direction_output(WIFI_REG_EN_GPIO, 0);
+	gpio_request(BT_REG_EN_GPIO, "bt_reg_on");
+	gpio_direction_output(BT_REG_EN_GPIO, 0);
 	udelay(1000);
 	gpio_set_value(WIFI_REG_EN_GPIO, 1);
+	gpio_set_value(BT_REG_EN_GPIO, 1);
 
 #ifdef CONFIG_FEC_MXC
 	setup_fec();
