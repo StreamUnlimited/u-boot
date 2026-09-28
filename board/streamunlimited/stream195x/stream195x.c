@@ -337,7 +337,7 @@ int board_init(void)
 	 * SDIO device will not be found on the bus leading to the `bcmdhd`
 	 * driver not probing.
 	 */
-	gpio_request(WIFI_REG_EN_GPIO, "wifi_reg");
+	gpio_request(WIFI_REG_EN_GPIO, "wifi_reg_on");
 	gpio_direction_output(WIFI_REG_EN_GPIO, 0);
 	udelay(1000);
 	gpio_set_value(WIFI_REG_EN_GPIO, 1);
